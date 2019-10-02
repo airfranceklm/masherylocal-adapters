@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.klm.amt.mashery</groupId>
-    <artifactId>AFKLM_ML_Filters</artifactId>
+    <artifactId>AFKLM_ML_Adapters</artifactId>
     <packaging>jar</packaging>
     <version>1.0</version>
     <description>Air France/KLM custom adapters for Mashery Local 4.3</description>
@@ -121,7 +121,6 @@
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>1.20</version>
-            <scope>test</scope>
         </dependency>
 
 
@@ -130,6 +129,13 @@
             <artifactId>aws-java-sdk-lambda</artifactId>
             <version>1.11.592</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sns</artifactId>
+            <version>1.11.632</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

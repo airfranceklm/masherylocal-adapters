@@ -1,0 +1,140 @@
+Custom JWT Validation Scenarios:
+  desc: This is a simple test simulation
+
+  endpoint:
+    service id: aServiceId
+    endpont id: anEndpointId
+    endpoint name: unit-test-endpoint
+
+    pre-processor configuration:
+      # Headers should be present and should contain value in it.
+      require-request-headers: authorization
+      require-eavs: Public_Key
+      synchronicity: request-response
+
+    post-processor configuration:
+      c: d
+
+  cases:
+    Lambda Denies:
+
+      event: pre-processor
+      desc: Checking that lambda processor denies the call if Authorization eav is not present in request.
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+        headers:
+          Authorization: B
+
+        # RequestPayload can be for GET-type requests.
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+          extended attributes:
+            Public_Key: b
+
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointI: anEndpointId
+          request:
+            headers:
+              authorization: B
+          eavs:
+            Public_Key: b
+
+        output:
+          code: 403
+          message: "Lambda 403"
+
+
+      expect traffic manager:
+        set complete: true
+        status code: 403
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Lambda 403]]></h1>"
+
+    # If we are missing a header in the request, then we should receive an obscure error.
+    Incomplete Request:
+      event: pre-processor
+      desc: Checking that lambda processor denies the call if public_key is not defined at Application.
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+
+      key:
+        as in: Lambda Denies
+
+      request to the api provider:
+        as in: Lambda Denies
+
+      expect traffic manager:
+        set complete: true
+        status code: 400
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"
+
+    Missing EAV Request:
+      event: pre-processor
+      desc: Checking that lambda processor denies the call if public_key is not defined at Application.
+      client:
+        as in: Lambda Denies
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      request to the api provider:
+        as in: Lambda Denies
+
+      expect traffic manager:
+        set complete: true
+        status code: 400
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"
+
+    Successful Request:
+      event: pre-processor
+      desc: Checking that the unit test will compile and will nominally pass.
+      client:
+        as in: Lambda Denies
+      key:
+        as in: Lambda Denies
+      request to the api provider:
+        as in: Lambda Denies
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointI: anEndpointId
+          request:
+            headers:
+              authorization: B
+          eavs:
+            Public_Key: b
+
+        output:
+        # empty object
+
+      # No modifications of the request should happen
+      # Response to the client should not be curtailed.

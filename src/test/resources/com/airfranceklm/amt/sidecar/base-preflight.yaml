@@ -1,0 +1,10 @@
+Base pre-flight test:
+  endpoint:
+    service id: servId
+    endpoint id: endpoint id
+
+    pre-processor configuration:
+      preflight-enabled: "true"
+
+  cases:
+    

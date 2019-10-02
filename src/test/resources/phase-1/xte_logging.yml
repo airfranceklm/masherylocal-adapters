@@ -1,0 +1,237 @@
+XTE Logging:
+  desc: Security logging and inspection for the eXtenal Test Environment (XTE). The sidecar inspects, logs, and, if
+    necessary, will override the response with sanitized inputs.
+
+  use cases:
+    - Inspection of potentially confidential data being present in the reponses.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    post-processor configuration:
+      synchronicity: request-response
+      expand-input: remoteAddress,operation,token,+responseHeaders,responsePayload
+
+  cases:
+    pass-along without modifications:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          remoteAddress: 1.2.3.4
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          response:
+            code: 201
+            headers:
+              ra: RB
+            payload: ==PAYLOAD==
+
+        output:
+        # Output is an empty object, indicating that no action is needed
+
+
+    rejecting delivery to API client:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          remoteAddress: 1.2.3.4
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          response:
+            code: 201
+            headers:
+              ra: RB
+            payload: ==PAYLOAD==
+
+        output:
+          code: 465
+          message: Payload violates defined confidentiality policy
+
+      expect traffic manager:
+        set complete: true
+        status code: 465
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Payload violates defined confidentiality policy]]></h1>"
+
+    invocation failure:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          remoteAddress: 1.2.3.4
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          response:
+            code: 201
+            headers:
+              ra: RB
+            payload: ==PAYLOAD==
+
+        throw error: Unexpected return code
+
+      expect traffic manager:
+        set complete: true
+        status code: 500
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Internal server error before sending the response, code 0x000003BB]]></h1>"
+
+
+#    pass-along with sanitizatoin:
+#      point: post-processor
+#
+#      client:
+#        remote address: 1.2.3.4
+#        http verb: GET
+#        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+#        headers:
+#          Authorization: B
+#
+#      request to the api provider:
+#        provider uri: https://docker.kml/backend/url?myQuery=ffff
+#
+#      key:
+#        package key: dfgf
+#        application:
+#          name: the-app
+#
+#      api origin response:
+#        code: 201
+#        headers:
+#          RA: RB
+#        payload: ==PAYLOAD==
+#
+#      # This is what should be sent to lambda
+#      sidecar:
+#        input:
+#          synchronicity: RequestResponse
+#          point: PostProcessor
+#          packageKey: dfgf
+#          serviceId: aServiceId
+#          endpointId: anEndpointId
+#
+#          remoteAddress: 1.2.3.4
+#          operation:
+#            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+#            httpVerb: GET
+#            path: /controlled-operation/param/search
+#            query:
+#              myQuery: p123
+#
+#          response:
+#            code: 201
+#            headers:
+#              ra: RB
+#            payload: ==PAYLOAD==
+#
+#        output:
+#          addHeaders:
+#            x-sanitized-by: AFKLM Sanitized
+#          dropHeaders:
+#            - x-backend
+#

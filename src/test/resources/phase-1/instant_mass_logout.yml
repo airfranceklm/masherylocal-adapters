@@ -1,0 +1,173 @@
+Instant massive logout:
+  desc: We want to be able to stop all traffic to the API endpoint with the tokens that were created before a
+    cutover point and make sure that the users have logged in after a different point in time. This may be necessary
+    e.g. to ensure the critical downtime for system migration.
+
+  use cases:
+    - Instant log-off of any number of bearer token, forcing the user to re-login.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    pre-processor configuration:
+      synchronicity: request-response
+      expand-input: token
+      sidecar-param-cutoverStart: 20200202T14:00:00Z
+      sidecar-param-cutoverAllowAfter: 20200202T15:00:00Z
+      sidecar-param-upToTier: "2"
+
+  cases:
+    access is granted:
+      desc: The sidecar checks the token expiry time and grants access if the token is operable outside of the cutover
+        window.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          params:
+            cutoverStart: 20200202T14:00:00Z
+            cutoverAllowAfter: 20200202T15:00:00Z
+            upToTier: 2
+
+          token:
+            grantType: password
+            userContext: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+            expires: "2020-03-24T13:48:09Z"
+            scope: role1 role2 role2
+
+        output:
+        # Do-nothing, empty object is produced.
+
+    access is denied:
+      desc: The sidecar checks the token expiry time and grants access if the token is operable outside of the cutover
+        window.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          params:
+            cutoverStart: 20200202T14:00:00Z
+            cutoverAllowAfter: 20200202T15:00:00Z
+            upToTier: 2
+
+          token:
+            grantType: password
+            userContext: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+            expires: "2020-03-24T13:48:09Z"
+            scope: role1 role2 role2
+
+        output:
+          code: 456
+          message: Service is closed for maintenance
+
+      expect traffic manager:
+        set complete: true
+        status code: 456
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Service is closed for maintenance]]></h1>"
+
+    invocation failure:
+      desc: The sidecar checks the token expiry time and grants access if the token is operable outside of the cutover
+        window.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          params:
+            cutoverStart: 20200202T14:00:00Z
+            cutoverAllowAfter: 20200202T15:00:00Z
+            upToTier: 2
+
+          token:
+            grantType: password
+            userContext: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+            expires: "2020-03-24T13:48:09Z"
+            scope: role1 role2 role2
+
+        throw error: Unexpected error code returned
+
+      expect traffic manager:
+        set complete: true
+        status code: 500
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"

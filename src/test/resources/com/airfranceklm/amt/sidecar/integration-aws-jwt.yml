@@ -1,0 +1,104 @@
+Real JWT Validation:
+  desc: Calling a real function from Vishal
+
+  endpoint:
+    service id: aServiceId
+    endpont id: anEndpointId
+    endpoint name: unit-test-endpoint
+
+    pre-processor configuration:
+      # Headers should be present and should contain value in it.
+      synchronicity: request-response
+      require-eavs: PublicKey
+      require-headers: authorization
+      transport: aws
+      lambda-param-type: HS256
+      aws.functionARN: arn:aws:lambda:eu-west-1:434277372272:function:jwt_authorizer
+      # The key and secret will be read from test properties.
+      aws.key: aws.awsKey
+      aws.secret: aws.awsSecret
+      aws.region: eu-west-1
+
+    post-processor configuration:
+      c: d
+
+  cases:
+    positive:
+      event: pre-processor
+      desc: Checking that lambda processor denies the call if Authorization eav is not present in request.
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+        headers:
+          Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJpYXQiOjE1NjY1NTEyMDR9.IYzZXnsiud-uaL7PIvrWFvC09n6d90Ba9kIQhd17P7A
+
+          # RequestPayload can be for GET-type requests.
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+          extended attributes:
+            PublicKey: secretkey
+
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+
+Integration JWT Validation Scenarios:
+  desc: This is a simple test simulation
+
+  endpoint:
+    service id: aServiceId
+    endpont id: anEndpointId
+    endpoint name: unit-test-endpoint
+
+    pre-processor configuration:
+      # Headers should be present and should contain value in it.
+      synchronicity: request-response
+      transport: aws
+      aws.functionARN: arn:aws:lambda:eu-west-1:190954361614:function:LambdaBasicAsync
+      # The key and secret will be read from test properties.
+      aws.key: aws.awsKey
+      aws.secret: aws.awsSecret
+      aws.region: eu-west-1
+
+    post-processor configuration:
+      c: d
+
+  cases:
+    Lambda Denies:
+
+      event: pre-processor
+      desc: Checking that lambda processor denies the call if Authorization eav is not present in request.
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+        headers:
+          Authorization: Dummy
+
+        # RequestPayload can be for GET-type requests.
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+          extended attributes:
+            public_key: b
+
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+
+      expect traffic manager:
+        set complete: true
+        status code: 403
+        headers:
+          Content-Type: application/xml
+        body: "<h1>Access is denied due to an ACL on the resource</h1>"

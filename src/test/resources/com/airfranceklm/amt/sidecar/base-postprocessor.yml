@@ -1,0 +1,159 @@
+Smoke Test:
+  desc: This is a simple test simulation
+
+  endpoint:
+    service id: fff
+    endpoint id: ffff
+    endpoint name: fake
+
+    pre-processor configuration:
+      a: b
+
+    post-processor configuration:
+      synchronicity: request-response
+      expand-input: "+responseHeaders|responsePayload"
+
+  cases:
+    base post-processing scenario:
+      event: post-processor
+      desc: Checking that the unit test will compile and will nominally pass.
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+        headers:
+          A: B
+          C: C1
+        payload: AAAA
+        # RequestPayload can be for GET-type requests.
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+          extended attributes:
+            a: b
+
+      authorization context:
+        scope: "12345"
+        user context: "456"
+        grant type: CC
+
+      # Actual request to the API provider would be unavailable, therefore this data
+      # is not required.
+      #request to the api provider:
+      #  provider uri: https://docker.kml/backend/url?myQuery=ffff
+      #  dropped headers:
+      #    - C
+      #    - D
+      #  added headers:
+      #    E: F
+      #    G: H
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PostProcessor
+          # Response data wouldn't be included.
+          #request:
+          #  headers:
+          #    a: B
+          #    e: F
+          #    g: H
+
+          response:
+            code: 201
+            headers:
+              ra: RB
+            payload: ==PAYLOAD==
+
+          packageKey: dfgf
+          serviceId: fff
+          endpointId: ffff
+
+
+Complete Offload Example:
+  desc: This is a simple test simulation
+
+  endpoint:
+    service id: fff
+    endpoint id: ffff
+    endpoint name: fake
+
+    post-processor configuration:
+      synchronicity: event
+      expand-input: requestPayload,responsePayload,+requestHeaders,+responseHeaders
+
+  cases:
+    base post-processing scenario:
+      event: post-processor
+      desc: Checking that the API will receive
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
+        headers:
+          A: B
+          C: C1
+        payload: AAAA
+        # RequestPayload can be for GET-type requests.
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+          extended attributes:
+            d: e
+
+      authorization context:
+        scope: "12345"
+        user context: "456"
+        grant type: CC
+
+      # Actual request to the API provider would be unavailable, therefore this data
+      # is not required.
+      #request to the api provider:
+      #  provider uri: https://docker.kml/backend/url?myQuery=ffff
+      #  dropped headers:
+      #    - C
+      #    - D
+      #  added headers:
+      #    E: F
+      #    G: H
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: Event
+          point: PostProcessor
+          # Response data wouldn't be included.
+          request:
+            headers:
+              a: B
+              c: C1
+            payload: AAAA
+
+          response:
+            code: 201
+            headers:
+              ra: RB
+            payload: ==PAYLOAD==
+
+          packageKey: dfgf
+          serviceId: fff
+          endpointId: ffff

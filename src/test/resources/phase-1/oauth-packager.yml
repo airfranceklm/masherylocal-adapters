@@ -1,0 +1,201 @@
+OAuth Packager:
+  desc: In this case, the OAuth parameters are checked from AFKLM internal administration.
+
+  use cases:
+    - Check required grant type specified at desired level (package, plan, or application) for accessing this endpoint;
+    - Check the HTTP verb for the specified endpoint.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+
+    pre-processor configuration:
+      synchronicity: request-response
+      expand-input: verb,grantType
+
+  cases:
+    access is granted:
+      desc: The sidecar is able to obtain the necessary authentication, and is passing this
+        to Mashery gateway for applcation.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/externallyHostedAPI/fff?myQuery=123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: "role1 role2 role2"
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: client_credentials
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/fff?myQuery=123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            httpVerb: GET
+          token:
+            grantType: client_credentials
+
+        output:
+          # Do-nothing, empty object is produced.
+
+    invocation fails:
+      desc: The sidecar is able to obtain the necessary authentication, and is passing this
+        to Mashery gateway for applcation.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/externallyHostedAPI/fff?myQuery=123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: "role1 role2 role2"
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: client_credentials
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/fff?myQuery=123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            httpVerb: GET
+          token:
+            grantType: client_credentials
+
+        throw error: Unexpected coded 500 encountered
+
+      expect traffic manager:
+        set complete: true
+        status code: 500
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"
+
+    access is granted with extra headers:
+      desc: The sidecar grants access; however it also flags how the request should be handled by passing the
+         additional headers in the response. Here the intention is that the back-end can only modify PNR, last name,
+         or email from the information passed. A comprehensive log of the action MUST be sent by the back-end to
+         the security administration department.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: PUT
+        uri: https://api.airfranceklm.com/externallyHostedAPI/fff?myQuery=123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: "role1 role2 role2"
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: client_credentials
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/fff?myQuery=123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            httpVerb: PUT
+          token:
+            grantType: client_credentials
+
+        output:
+          addHeaders:
+            x-afklm-allow: PNR,LastName,Email
+            x-afklm-security-logging: FULL
+
+      # This is what needs to be changed
+      expect api origin request modifications:
+        added headers:
+          x-afklm-allow: PNR,LastName,Email
+          x-afklm-security-logging: FULL
+
+    access is denied:
+      desc: The sidecar denies POST method to the use as this method is not supported in the administration.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: POST
+        uri: https://api.airfranceklm.com/externallyHostedAPI/fff?myQuery=123
+        payload: == Sample Payload ==
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: "role1 role2 role2"
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: client_credentials
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/fff?myQuery=123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            httpVerb: POST
+          token:
+            grantType: client_credentials
+
+        output:
+          code: 443
+          message: Operation not permitted for your plan
+
+      expect traffic manager:
+        set complete: true
+        status code: 443
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Operation not permitted for your plan]]></h1>"
+

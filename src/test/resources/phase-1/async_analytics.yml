@@ -1,0 +1,163 @@
+Asynchronous analytics:
+  desc: Case illustrates the use of the Async analytics. It is largely analogous to XTE Logging, with the crutial
+    difference that it's invoked as an event and is fail-safe.
+
+  use cases:
+    - Inspection of potentially confidential data being present in the reponses.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    post-processor configuration:
+      synchronicity: event
+      expand-input: operation,requestPayload,responsePayload
+      failsafe: "true"
+
+  cases:
+    payload extraction on get:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==RESPONSE PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: Event
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          response:
+            code: 201
+            payload: ==RESPONSE PAYLOAD==
+
+        output:
+
+    payload extraction on post:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: POST
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+        payload: == REQUEST PAYLOAD ==
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==RESPONSE PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: Event
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: POST
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          request:
+            payload: == REQUEST PAYLOAD ==
+
+          response:
+            code: 201
+            payload: ==RESPONSE PAYLOAD==
+
+        output:
+          # No input will be expected.
+
+    invocation failure:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+        payload: ==PAYLOAD==
+
+      # This is what should be sent to lambda
+      sidecar:
+        input:
+          synchronicity: Event
+          point: PostProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          response:
+            code: 201
+            payload: ==PAYLOAD==
+
+        throw error: Unexpected return code
+
+    # Nothing should happen: the call will just continue.

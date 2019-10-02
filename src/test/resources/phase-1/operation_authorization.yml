@@ -1,0 +1,319 @@
+User-level Operation Authorization with Token:
+  desc: As if user-level authentication is not enough. We can go down to the level of an indivual access token
+    if that's what's required. This might be necessary to force the users to re-login e.g. after a certain moment
+    in the future.
+
+  use cases:
+    - Authorizing methods for individual operations. (We not this difference with theOperation Authorizatio that validates
+      the settings for the application.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    pre-processor configuration:
+      synchronicity: request-response
+      expand-input: operation,+token
+      sidecar-param-cutoverDate: 20200202T14:00:00Z
+
+  cases:
+    access is granted to individual user token:
+      desc: The sidecar checks the access to the individual application based on the grant type and the role assigned.
+        We want to ensure that the users are logged in with a stronger credentials and that they have
+        specific role to invoke an operation.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: PUT
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          params:
+            cutoverDate: 20200202T14:00:00Z
+
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: PUT
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          token:
+            grantType: password
+            userContext: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+            expires: "2020-03-24T13:48:09Z"
+            scope: role1 role2 role2
+            bearerToken: unit-test-token
+
+        output:
+        # Do-nothing, empty object is produced.
+
+
+User-level Operation Authorization:
+  desc: Even more finer-grained access control, focusing on authorizing actions of the indvidiaul users. In this
+    scenario, only a positive case will be considered since negative cases are effectively the repetition of
+    those described in Operation Authorizaion scenario
+
+  use cases:
+    - Authorizing methods for individual operations. (We not this difference with theOperation Authorizatio that validates
+      the settings for the application.
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    pre-processor configuration:
+      synchronicity: request-response
+      expand-input: operation,token
+
+  cases:
+    access is granted to individual user:
+      desc: The sidecar checks the access to the individual application based on the grant type and the role assigned.
+        We want to ensure that the users are logged in with a stronger credentials and that they have
+        specific role to invoke an operation.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: PUT
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: PUT
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          token:
+            grantType: password
+            userContext: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+            expires: "2020-03-24T13:48:09Z"
+            scope: role1 role2 role2
+
+        output:
+        # Do-nothing, empty object is produced.
+
+
+Operation Authorization:
+  desc: The operation authorization allows sidecar perform fine-grained access control authorization going to the
+    level of subtrees, endpoints, or operations. In this scenario, we are looking at controlling the application-level
+    access.
+
+  use cases:
+    - Authorizing methods for individual operations. (We not this difference with the OAuth packager that validagtes
+      the verb for the entire endpoint
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    pre-processor configuration:
+      synchronicity: request-response
+      expand-input: operation,grantType,tokenScope
+
+  cases:
+    access is granted:
+      desc: The sidecar checks the access to the individual application based on the grant type and the role assigned.
+           We want to ensure that the users are logged in with a stronger credentials and that they have
+           specific role to invoke an operation.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: GET
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          token:
+            grantType: password
+            scope: role1 role2 role2
+
+        output:
+        # Do-nothing, empty object is produced.
+
+    access is denied:
+      desc: The sidecar denies the access to the POST method, of this operation, becuase it believe it is not
+         allowed.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: POST
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        payload: == Sample Payload ==
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: POST
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          token:
+            grantType: password
+            scope: role1 role2 role2
+
+        output:
+          code: 455
+          message: Access denies do to an ACL on the resource
+
+      expect traffic manager:
+        set complete: true
+        status code: 455
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Access denies do to an ACL on the resource]]></h1>"
+
+
+    invocation failed:
+      desc: If invocation fails, the 500 error should be returned back to the user.
+
+      point: pre-processor
+
+      client:
+        remote address: 127.0.0.1
+        http verb: PATCH
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        payload: == Sample Payload ==
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      authorization context:
+        scope: role1 role2 role2
+        user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+        grant type: password
+        expires: "2020-03-24T13:48:09Z"
+
+      request to the api provider:
+        provider uri: https://some.externally.hostted.backend.com/backend/v2/controlled-operation/param/search?myQuery=p123
+
+      sidecar:
+        input:
+          synchronicity: RequestResponse
+          point: PreProcessor
+          packageKey: dfgf
+          serviceId: aServiceId
+          endpointId: anEndpointId
+          operation:
+            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+            httpVerb: PATCH
+            path: /controlled-operation/param/search
+            query:
+              myQuery: p123
+
+          token:
+            grantType: password
+            scope: role1 role2 role2
+
+        throw error: Unexpected return code received
+
+      expect traffic manager:
+        set complete: true
+        status code: 500
+        headers:
+          content-type: application/xml
+        body: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"
