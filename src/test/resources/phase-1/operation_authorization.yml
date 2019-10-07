@@ -3,6 +3,9 @@ User-level Operation Authorization with Token:
     if that's what's required. This might be necessary to force the users to re-login e.g. after a certain moment
     in the future.
 
+  descoped: true
+  descoping reason: Low probability of an event where such authorization will be needed.
+
   use cases:
     - Authorizing methods for individual operations. (We not this difference with theOperation Authorizatio that validates
       the settings for the application.
@@ -47,6 +50,7 @@ User-level Operation Authorization with Token:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -79,8 +83,7 @@ User-level Operation Authorization:
     those described in Operation Authorizaion scenario
 
   use cases:
-    - Authorizing methods for individual operations. (We not this difference with theOperation Authorizatio that validates
-      the settings for the application.
+    - Authorizing users for individual operations.
 
   endpoint:
     service id: aServiceId
@@ -121,6 +124,7 @@ User-level Operation Authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -191,6 +195,7 @@ Operation Authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -238,6 +243,7 @@ Operation Authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -293,6 +299,7 @@ Operation Authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf

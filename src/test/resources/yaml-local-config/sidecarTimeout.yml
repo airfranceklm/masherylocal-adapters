@@ -1,0 +1,15 @@
+timeout:
+  # No effect
+---
+timeout: 450
+  # Interpreted as millis-seconds directly
+---
+timeout: 4s
+  # Interpreted as 4 seconds
+---
+timeout: 4.2s
+# Interpreted as 4,2 seconds
+---
+timeout: 0.25m
+# Interpreted as a quarter of a minute
+

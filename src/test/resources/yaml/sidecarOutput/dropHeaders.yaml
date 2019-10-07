@@ -1,0 +1,11 @@
+dropHeaders:
+  # No effect
+---
+dropHeaders:
+  - B
+  - C
+---
+dropHeaders:
+  - B
+  - 345
+  # Wrong type; will be ignored.

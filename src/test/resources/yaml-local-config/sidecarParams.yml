@@ -1,0 +1,7 @@
+sidecar-params:
+  # No effect
+---
+sidecar-params:
+  p1: this is string
+  p2: 234
+  p3: true

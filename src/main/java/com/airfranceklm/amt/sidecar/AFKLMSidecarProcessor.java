@@ -7,12 +7,12 @@ import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilterGroup;
 import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilteringResult;
 import com.airfranceklm.amt.sidecar.input.EventInspector;
 import com.airfranceklm.amt.sidecar.input.SidecarInputBuilder;
-import com.airfranceklm.amt.sidecar.input.SidecarRuntimeCompiler;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStacks;
 import com.airfranceklm.amt.sidecar.stack.InMemoryStack;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mashery.http.HTTPHeaders;
 import com.mashery.http.MutableHTTPHeaders;
 import com.mashery.http.io.ContentProducer;
 import com.mashery.http.io.ContentSource;
@@ -24,8 +24,8 @@ import com.mashery.trafficmanager.event.model.TrafficEvent;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
 import com.mashery.trafficmanager.model.core.TrafficManagerResponse;
-import com.mashery.trafficmanager.processor.ProcessorBean;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,20 +34,22 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.Base64;
+import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 /**
  * AFKLM sidecar pre- and post-processor. See the <a href="./readme.md">readme file</a> file for the complete
  * description of the operation.
  */
-@ProcessorBean(enabled = true,
-        immediate = true,
-        name = "com.airfranceklm.amt.lambda.AFKLMLambdaSidecarProcessor")
 public class AFKLMSidecarProcessor implements TrafficEventListener {
 
     private static final TimeUnit IDEMPOTENT_STORAGE_UNIT = TimeUnit.MINUTES;
@@ -55,7 +57,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
     private static final String RELAY_MESSAGE = "X_RELAY_MSG";
     private static final String RELAY_PARAMS = "X_RELAY_PARAMS";
 
-    public static final DateFormat jsonDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static DateTimeFormatter jsonFormat = ISODateTimeFormat.dateTimeParser();
 
     public static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -99,16 +101,23 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
     private LocalConfigDirectoryScanner scanner;
 
+    private static Pattern mimePattern = Pattern.compile("([a-zA-Z/\\-+.]+)(\\s*;\\s*charset\\s*=\\s*([a-zA-Z0-9\\-]{1,}))?");
+
 
     public AFKLMSidecarProcessor() {
         this(new ProductionConfigurationStore());
         initIdempotentDependencies();
 
-        scanner = new LocalConfigDirectoryScanner(this, new File("/etc/mashery/sidecar"));
-        scanner.scanOnStartup();
+        try {
+            scanner = new LocalConfigDirectoryScanner(this, new File("/etc/mashery/sidecar"));
+            scanner.scanOnStartup();
 
-        // TODO:
-        // - Start the file system watcher to monitor the file system changes.
+            scanner.watch();
+        } catch (Throwable ex) {
+            log.error(String.format("Could not initialize local directory watch: %s", ex.getMessage()), ex);
+        }
+
+        log.info("AFKLM Sidecar Processor has been loaded.");
     }
 
     public void initIdempotentDependencies() {
@@ -123,6 +132,16 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
     void useStore(SidecarConfigurationStore store) {
         store.bindTo(this);
         this.configStore = store;
+    }
+
+    /**
+     * Parses the JSON date
+     *
+     * @param date date to parse
+     * @return instance of the parsed date.
+     */
+    public static Date parseJSONDate(String date) {
+        return jsonFormat.parseDateTime(date).toDate();
     }
 
 
@@ -144,10 +163,20 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
      * @return marshalled object
      * @throws IOException if the marshalling cannot be successfully completed.
      */
+    @SuppressWarnings("unchecked")
     public static SidecarOutput toSidecarOutput(String lambdaRawValue) throws IOException {
         try {
-            return objectMapper.readValue(lambdaRawValue,
-                    SidecarOutputImpl.class);
+            MarshallableSidecarOutput rawOut =
+             objectMapper.readValue(lambdaRawValue,
+                     MarshallableSidecarOutput.class);
+
+            if (rawOut != null) {
+                if (rawOut.getJson() != null) {
+                    rawOut.setJSONPayload((Map<String, ?>) objectMapper.convertValue(rawOut.getJson(), Map.class));
+                }
+
+            }
+            return rawOut;
         } catch (JsonMappingException ex) {
             log.error(String.format("Function returned JSON that cannot be converted to the output: %s", lambdaRawValue));
             throw new IOException("Cannot unmarshal Lambda return");
@@ -177,7 +206,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
             }
 
             try {
-                if (cfg.isPreflightEnabled()) {
+                if (cfg.demandsPreflightHandling()) {
                     // The main purpose of the pre-flight check is to disable the traffic to the API when a specific
                     // condition is either met or violated. Secondary purpose is to add additional headers that "enrich" the identification
                     // of the service, endpoint, or a package.
@@ -310,7 +339,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         SidecarOutput retVal = invokeIdempotentAware(cmd);
 
         if (retVal != null && retVal.relaysMessageToPostprocessor()) {
-            if (retVal.getRelayParameters() != null) {
+            if (retVal.getRelayParams() != null) {
                 cmd.logEntry(RELAY_PARAMS, retVal.createSerializeableRelayParameters());
             }
         }
@@ -423,12 +452,12 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
                 if (r.getUri() != null) {
                     ppe.getClientRequest().setURI(r.getUri());
-                } else if (r.overridesPartially()) {
+                } else if (r.outboundURINeedsChanging()) {
                     try {
                         URL current = new URL(ppe.getClientRequest().getURI());
                         String host = r.getHost() != null ? r.getHost() : current.getHost();
                         String file = r.getFile() != null ? r.getFile() : current.getFile();
-                        int port = r.getPort() > 0 ? r.getPort() : current.getPort();
+                        int port = r.getPort() != null ? r.getPort() : current.getPort();
 
                         URL newURL = new URL(current.getProtocol(), host, port, file);
                         ppe.getClientRequest().setURI(newURL.toString());
@@ -443,12 +472,12 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
             if (output.getPayload() != null) {
                 ppe.getClientRequest().setBody(new ContentProducerImpl(output.getPayload()));
-            } else if (output.getJson() != null) {
+            } else if (output.getJSONPayload() != null) {
                 if (!output.addsContentType()) {
                     ppe.getClientRequest().getHeaders().set("content-type", "application/json");
                 }
                 ppe.getClientRequest().getHeaders().set("content-encoding", "gzip");
-                ppe.getClientRequest().setBody(new ContentProducerImpl(toJSON(output.getJson(), true)));
+                ppe.getClientRequest().setBody(new ContentProducerImpl(toJSON(output.getJSONPayload(), true)));
             }
 
             return true;
@@ -473,8 +502,8 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
                 ppe.getServerResponse().setBody(new ContentProducerImpl(output.getPayload()));
             }
 
-            if (output.getJson() != null) {
-                ppe.getServerResponse().setBody(new ContentProducerImpl(toJSON(output.getJson())));
+            if (output.getJSONPayload() != null) {
+                ppe.getServerResponse().setBody(new ContentProducerImpl(toJSON(output.getJSONPayload())));
             }
         }
     }
@@ -557,7 +586,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         objectMapper.writeValue(sink, obj);
         sink.close();
 
-        return compress ? Base64.encode(baos.toByteArray()) : baos.toString();
+        return compress ? Base64.getEncoder().encodeToString(baos.toByteArray()) : baos.toString();
     }
 
     /**
@@ -619,7 +648,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
      * @param output   output of the lambda dunctoin
      */
     private void sendCurtailed(TrafficManagerResponse response, SidecarOutput output) {
-        if (output.getPayload() != null || output.getJson() != null) {
+        if (output.getPayload() != null || output.getJSONPayload() != null) {
 
             response.getHTTPResponse().setStatusCode(output.getCode());
 
@@ -632,13 +661,13 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
             if (output.getPayload() != null) {
                 content = output.getPayload();
-            } else if (output.getJson() != null) {
+            } else if (output.getJSONPayload() != null) {
                 if (!output.addsContentType()) {
                     headers.set("content-type", "application/json");
                 }
 
                 try {
-                    content = toJSON(output.getJson(), true);
+                    content = toJSON(output.getJSONPayload(), true);
                     headers.set("content-encoding", "gzip");
                 } catch (IOException ex) {
                     content = "{\"message\": \"Internal server error before processing the call, code 0x000003BB/A\"}";
@@ -654,11 +683,84 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         }
     }
 
-    public static void addContentBody(ContentSource bodyContent, SidecarInputHTTPMessage to) throws IOException {
+    static boolean isTextMimeType(String pType) {
+        if (pType == null) return false;
+
+        String type = pType.toLowerCase();
+
+        if (type.startsWith("text/")) {
+            return true;
+        } else if (type.startsWith("application/json")
+                || type.startsWith("application/javascript")
+                || type.equals("application/ld+json")
+                || type.equals("application/vnd.api+json")
+        ) {
+            return true;
+        } else if (type.startsWith("application/yaml") || type.startsWith("application/x-yaml")) {
+            return true;
+        } else if (type.equals("application/x-www-form-urlencoded")) {
+            return true;
+        } else if (type.startsWith("application/xml") || type.startsWith("application/xhtml")) {
+            return true;
+        } else if (type.startsWith("application/graphql")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    static String inferTextEncoding(String mimeValue) {
+        Matcher m = mimePattern.matcher(mimeValue);
+        if (m.matches()) {
+            String specifiedEnc = m.group(3);
+            if (specifiedEnc == null) {
+                return "utf-8";
+            } else {
+                return specifiedEnc;
+            }
+        }
+        return null;
+    }
+
+    public static void addContentBody(HTTPHeaders headers, ContentSource bodyContent, SidecarInputHTTPMessage to) throws IOException {
         if (bodyContent != null) {
+            boolean sendAsBase64 = true;
+            Charset strCharset = StandardCharsets.UTF_8;
+
+            final boolean hasContentEncoding = headers.contains("content-encoding")
+                    || headers.contains("content-transfer-encoding")
+                    || headers.contains("transfer-encoding");
+
+            if (!hasContentEncoding && headers.contains("content-type")) {
+                final String contentType = headers.get("content-type");
+                if (isTextMimeType(contentType)) {
+                    String textEnc = inferTextEncoding(contentType);
+                    if (textEnc != null) {
+                        String normalizedEnc = textEnc.toLowerCase();
+                        switch (normalizedEnc) {
+                            case "utf-8":
+                            case "utf8":
+                                sendAsBase64 = false;
+                            default:
+                                try {
+                                    strCharset = Charset.forName(textEnc);
+                                    sendAsBase64 = false;
+                                } catch (UnsupportedCharsetException ex) {
+                                    // Charset is not known, the content will be sent as Base64
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+
             to.setPayloadLength(bodyContent.getContentLength());
-            if (to.getPayloadLength() > 0) {
-                to.setPayload(getContentOf(bodyContent));
+            if (sendAsBase64) {
+                to.setPayloadBase64Encoded(true);
+                to.setPayload(getBase64ContentOf(bodyContent));
+            } else {
+                to.setPayloadBase64Encoded(false);
+                to.setPayload(getContentOf(bodyContent, strCharset));
             }
         }
     }
@@ -687,9 +789,17 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         return new ContentProducerImpl(str);
     }
 
-    public static String getContentOf(ContentSource cs) throws IOException {
+    /**
+     * Gets the content of the stream using the specified charset
+     *
+     * @param cs      content source
+     * @param charSet charset to use
+     * @return read values of the content source
+     * @throws IOException if an I/O error is thrown.
+     */
+    public static String getContentOf(ContentSource cs, Charset charSet) throws IOException {
         StringBuilder sb = new StringBuilder();
-        Reader r = new InputStreamReader(cs.getInputStream());
+        Reader r = new InputStreamReader(cs.getInputStream(), charSet);
         CharBuffer cb = CharBuffer.allocate(10240);
 
         while (r.read(cb) > 0) {
@@ -712,7 +822,29 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
     }
 
     /**
+     * Returns the content of the stream as a Base-64 encoded array
+     *
+     * @param cs a non-null content source
+     * @return Base64 representation of this array.
+     * @throws IOException if an i/o error reading the data will occur.
+     */
+    public static String getBase64ContentOf(ContentSource cs) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        InputStream is = cs.getInputStream();
+        byte[] buf = new byte[10240];
+
+        int k = 0;
+        while ((k = is.read(buf)) > 0) {
+            baos.write(buf, 0, k);
+        }
+
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    /**
      * Resolves the stack referred to in this configuration.
+     *
      * @param cfg configuration
      * @return stack to use, or null if not supported or installed.
      */

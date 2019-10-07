@@ -36,6 +36,7 @@ Including Application EAVs:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -132,6 +133,7 @@ Including Package Key EAVs:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -224,6 +226,7 @@ Routing data expansion:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -279,6 +282,7 @@ Token data expansion:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -307,6 +311,7 @@ Token data expansion:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -319,6 +324,7 @@ Token data expansion:
         output:
         # An empty object, do nothing.
 
+Remote Address expansion:
 Remote Address expansion:
   desc: Checking that the remote address will be passed correctly.
 
@@ -351,6 +357,7 @@ Remote Address expansion:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -396,6 +403,7 @@ Operation expansion test:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -433,6 +441,7 @@ Operation expansion test:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           request:
@@ -482,6 +491,7 @@ Passing parameters test:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PreProcessor
           params:
@@ -521,6 +531,7 @@ Max Request Size Blocking Configuration:
         uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
         headers:
           a: B
+          Content-Type: text/plain
         payload: ABC
 
       key:
@@ -533,11 +544,13 @@ Max Request Size Blocking Configuration:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
             headers:
               a: B
+              content-type: text/plain
             payload: ABC
           packageKey: dfgf
           serviceId: fff
@@ -555,6 +568,7 @@ Max Request Size Blocking Configuration:
         uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
         headers:
           a: B
+          Content-Type: text/plain
         payload: ABCDEFGHIJKLMOP
 
 
@@ -626,6 +640,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -669,6 +684,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -712,6 +728,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -758,6 +775,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -806,6 +824,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -856,6 +875,7 @@ Smoke Test:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:
@@ -936,6 +956,7 @@ Fail-safe configuration cases:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           request:

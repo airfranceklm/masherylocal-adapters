@@ -1,29 +1,75 @@
 package com.airfranceklm.amt.sidecar.config;
 
 import com.airfranceklm.amt.sidecar.*;
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.yaml.snakeyaml.Yaml;
 
-import java.text.ParseException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.airfranceklm.amt.sidecar.AFKLMSidecarProcessor.parseJSONDate;
+import static com.airfranceklm.amt.sidecar.config.ConfigRequirement.Included;
+import static com.airfranceklm.amt.sidecar.config.ConfigRequirement.Required;
+import static com.airfranceklm.amt.sidecar.config.MasheryConfigSidecarConfigurationBuilder.*;
 
 /**
  * Class that will build the sidecar configuration from the specific YAML configuration.
  */
 public class YamlConfigurationBuilder {
 
+    private static Pattern jsonPattern = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}(:)?\\d{2})");
+
     public static SidecarConfiguration getSidecarConfiguration(SidecarInputPoint point, Map<String, Object> cfg) {
         SidecarConfiguration retVal = new SidecarConfiguration(point);
+        retVal.setStack("http");
 
-        forDefinedString(cfg, "synchronicity", (val) -> {
-            retVal.setSynchronicity(SidecarSynchronicity.valueOf(val));
+        if (cfg == null) {
+            return retVal;
+        }
+
+        forDefinedString(cfg, CFG_SYNCHRONICITY, (val) -> {
+            switch (val.toLowerCase().trim()) {
+                case "requestresponse":
+                case CFG_VAL_REQUEST_RESPONSE:
+                    retVal.setSynchronicity(SidecarSynchronicity.RequestResponse);
+                    break;
+                case CFG_VAL_NON_BLOCKING:
+                case "non-blocking-event":
+                case "nonblocking":
+                case "nonblockingevent":
+                    retVal.setSynchronicity(SidecarSynchronicity.NonBlockingEvent);
+                    break;
+                case CFG_VAL_SYNC_EVENT:
+                default:
+                    retVal.setSynchronicity(SidecarSynchronicity.Event);
+                    break;
+            }
         });
 
-        forDefinedString(cfg, "stack", retVal::setStack);
+        // Parse the timeout value.
+        forDefinedString(cfg, CFG_TIMEOUT, (str) -> parseSidecarTimeout(str, retVal));
+        forDefinedInteger(cfg, CFG_TIMEOUT, retVal::setSidecarTimeout);
 
-        forDefinedStringMap(cfg, "stack parameters", retVal::setStackParams);
-        forDefinedObjectMap(cfg, "sidecar params", retVal::setSidecarParams);
+
+        // Parse the idempotent configuration setting
+        forDefinedBoolean(cfg, CFG_IDEMPOTENT_AWARE, retVal::setIdempotentAware);
+
+        forDefinedObjectMap(cfg, "stack", (stackCfg) -> {
+            forDefinedString(stackCfg, "type", retVal::setStack);
+            forDefinedStringMap(stackCfg, "params", retVal::setStackParams);
+        });
+
+        forDefinedObjectMap(cfg, "sidecar-params", retVal::setSidecarParams);
 
         forDefinedObjectMap(cfg, "size", (map) -> {
             MaxSizeSetting req = new MaxSizeSetting(50 * 1024, MaxSizeComplianceRequirement.Blocking);
@@ -37,101 +83,154 @@ public class YamlConfigurationBuilder {
             retVal.setMaxSize(req);
         });
 
-        forDefinedBoolean(cfg, "failsafe", retVal::setFailsafe);
-        forEachInDefinedStringList(cfg, "expand", (v) -> {
-            retVal.expandTo(InputScopeExpansion.valueOf(v));
+        forDefinedBoolean(cfg, CFG_FAILSAFE, retVal::setFailsafe);
+        forDefinedStringList(cfg, CFG_EXPAND, (v) -> {
+            String[] arr = new String[v.size()];
+            arr = v.toArray(arr);
+
+            parseExpansionList(arr, retVal::expandTo);
         });
 
-        forDefinedObjectMap(cfg, "request headers", (reqCfg) -> {
+        forDefinedObjectMap(cfg, "request-headers", (reqCfg) -> {
             forDefinedStringList(reqCfg, "require", v -> {
-                retVal.processRequestHeaders(ConfigRequirement.Required, v);
+                retVal.processRequestHeaders(Required, v);
             });
             forDefinedStringList(reqCfg, "include", v -> {
-                retVal.processRequestHeaders(ConfigRequirement.Included, v);
+                retVal.processRequestHeaders(Included, v);
             });
 
-            forEachInDefinedStringList(reqCfg, "skip", retVal::skipRequestHeader);
-
+            forDefinedStringList(reqCfg, "skip", retVal::skipRequestHeaders);
         });
 
-        forDefinedObjectMap(cfg, "response headers", (reqCfg) -> {
+        forDefinedObjectMap(cfg, "response-headers", (reqCfg) -> {
             forEachInDefinedStringList(reqCfg, "include", retVal::includeResponseHeader);
-            forEachInDefinedStringList(reqCfg, "skip", retVal::skipsResponseHeader);
+            forDefinedStringList(reqCfg, "skip", retVal::skipResponseHeaders);
 
         });
 
-        forDefinedObjectMap(cfg, "application eavs", (reqCfg) -> {
-            retVal.expandTo(InputScopeExpansion.ApplicationEAVs);
-
+        forDefinedObjectMap(cfg, "eavs", (reqCfg) -> {
             forEachInDefinedStringList(reqCfg, "require", (v) -> {
-                retVal.processApplicationEAV(ConfigRequirement.Required, v);
+                retVal.processApplicationEAV(Required, v);
             });
             forEachInDefinedStringList(reqCfg, "include", (v) -> {
-                retVal.processApplicationEAV(ConfigRequirement.Included, v);
+                retVal.processApplicationEAV(Included, v);
             });
 
+            if (retVal.requiresApplicationEAVs()) {
+                retVal.expandTo(InputScopeExpansion.ApplicationEAVs);
+            }
         });
 
-        forDefinedObjectMap(cfg, "package key eavs", (reqCfg) -> {
-            retVal.expandTo(InputScopeExpansion.PackageKeyEAVS);
+        forDefinedObjectMap(cfg, "pacakgeKey-eavs", (reqCfg) -> {
 
             forEachInDefinedStringList(reqCfg, "require", (v) -> {
-                retVal.processPackageKeyEAV(ConfigRequirement.Required, v);
+                retVal.processPackageKeyEAV(Required, v);
             });
             forEachInDefinedStringList(reqCfg, "include", (v) -> {
-                retVal.processPackageKeyEAV(ConfigRequirement.Included, v);
+                retVal.processPackageKeyEAV(Included, v);
             });
 
+            if (retVal.requiresPreflightPackageKeyEAVs()) {
+                retVal.expandTo(InputScopeExpansion.PackageKeyEAVS);
+            }
         });
 
-        forDefinedObjectMap(cfg, "pre-flight", (preFlight) -> {
-            retVal.setPreflightEnabled(true);
+        forDefinedObjectMap(cfg, "preflight", (preFlight) -> {
+            forDefinedBoolean(preFlight, "enabled", retVal::setPreflightEnabled);
 
             forDefinedObjectMap(preFlight, "headers", (hmap) -> {
                 forEachInDefinedStringList(hmap, "require", (h) -> {
-                    retVal.processPreflightHeaders(ConfigRequirement.Required, h);
+                    retVal.processPreflightHeaders(Required, h);
                 });
 
                 forEachInDefinedStringList(hmap, "include", (h) -> {
-                    retVal.processPreflightHeaders(ConfigRequirement.Included, h);
+                    retVal.processPreflightHeaders(Included, h);
                 });
             });
 
-            forDefinedObjectMap(preFlight, "application eavs", (hmap) -> {
+            forDefinedObjectMap(preFlight, "eavs", (hmap) -> {
                 forEachInDefinedStringList(hmap, "require", (eav) -> {
-                    retVal.processPreflightEAVs(ConfigRequirement.Required, eav);
+                    retVal.processPreflightEAVs(Required, eav);
                 });
 
                 forEachInDefinedStringList(hmap, "include", (eav) -> {
-                    retVal.processPreflightEAVs(ConfigRequirement.Included, eav);
+                    retVal.processPreflightEAVs(Included, eav);
                 });
             });
 
-            forDefinedObjectMap(preFlight, "package key eavs", (hmap) -> {
-                forEachInDefinedStringList(hmap, "require", (eav) -> {
-                    retVal.processPreflightPackageKeyEAVs(ConfigRequirement.Required, eav);
-                });
+            forDefinedObjectMap(preFlight, "packageKey-eavs", (hmap) -> {
+                forEachInDefinedStringList(hmap, "require", (eav) -> retVal.processPreflightPackageKeyEAVs(Required, eav));
 
-                forEachInDefinedStringList(hmap, "include", (eav) -> {
-                    retVal.processPreflightPackageKeyEAVs(ConfigRequirement.Included, eav);
-                });
+                forEachInDefinedStringList(hmap, "include", (eav) -> retVal.processPreflightPackageKeyEAVs(Included, eav));
             });
 
             forDefinedObjectMap(preFlight, "params", retVal::setPreflightParams);
 
-            forEachInDefinedStringList(preFlight, "expand", (s) -> {
-                retVal.expandPreflightTo(InputScopeExpansion.valueOf(s));
+            forDefinedStringList(preFlight, CFG_EXPAND, (v) -> {
+                String[] arr = new String[v.size()];
+                arr = v.toArray(arr);
+
+                parsePreflightExpansionList(arr, retVal);
             });
         });
 
-        forDefinedObjectMap(cfg, "static modification", (rMap) -> {
+        forDefinedObjectMap(cfg, "staticModification", (rMap) -> {
             retVal.setStaticModification(buildSidecarOutputFromYAML(rMap));
+        });
+
+
+        forDefinedObjectMap(cfg, "scopeFilters", (filtersMap) -> {
+            forEachNamedArrayIn(filtersMap, (groupName, groupYaml) -> {
+                forEachInArray(groupYaml, (entryYaml)-> {
+                    forObjectMap(entryYaml, (yaml) -> {
+                        String param = getDefinedString(yaml, "param");
+                        String label = getDefinedString(yaml, "label");
+                        String value = getDefinedString(yaml, "value");
+                        Boolean inc = getDefinedBoolean(yaml, "inclusive");
+
+                        if (param != null || label != null || value != null) {
+
+                            if (inc == null) {
+                                inc = true;
+                            }
+                            retVal.addScopeFilter(new SidecarScopeFilterEntry(groupName, param, label, value, inc));
+                        } else {
+                            // Increment an error in the configuration.
+                            retVal.incrementError();
+                        }
+                    });
+                });
+            });
+
         });
 
         return retVal;
     }
 
-    public static void forDefinedLong(Map<String, Object> cfg, String key, Consumer<Long> lambda) {
+    @SuppressWarnings("unchecked")
+    private static void forEachInArray(Object pList, Consumer<Object> c) {
+        if (pList instanceof List) {
+            ((List)pList).forEach(c);
+        }
+    }
+
+    /**
+     * Executes the consumer if the passed object is a non-null instance of {@link Map}
+     * @param obj Object to check
+     * @param c consumer to be called
+     */
+    @SuppressWarnings("unchecked")
+    private static void forObjectMap(Object obj, Consumer<Map<String, Object>> c) {
+        if (obj == null) {
+            return;
+        }
+
+        if (obj instanceof Map) {
+            c.accept((Map<String,Object>)obj);
+        }
+    }
+
+    static void forDefinedLong(Map<String, Object> cfg, String key, Consumer<Long> lambda) {
         Object t = cfg.get(key);
         if (t instanceof Long) {
             lambda.accept((Long) t);
@@ -160,28 +259,104 @@ public class YamlConfigurationBuilder {
         }
     }
 
-    public static void forEachInDefinedStringList(Map<String, Object> cfg, String key, Consumer<String> lambda) {
+    static void forEachInObjectList(Object list, Consumer<Object> lambda) {
+        if (!(list instanceof List)) {
+            return;
+        }
+        List<Object> l = (List<Object>)list;
+        l.forEach(lambda);
+    }
+
+    @SuppressWarnings("unchecked")
+    static void forEachInDefinedStringList(Map<String, Object> cfg, String key, Consumer<String> lambda) {
         Object t = cfg.get(key);
         if (t instanceof List) {
+            for (Object o: (List)t) {
+                if (!(o instanceof String)) {
+                    return;
+                }
+            }
+
             List<String> l = (List<String>) t;
             l.forEach(lambda);
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static void forDefinedStringList(Map<String, Object> cfg, String key, Consumer<List<String>> lambda) {
         Object t = cfg.get(key);
         if (t instanceof List) {
+            for (Object o: (List)t) {
+                if (!(o instanceof String)) {
+                    return;
+                }
+            }
             lambda.accept((List<String>) t);
         }
     }
 
+    /**
+     * Invokes the lambda function if the there is <code>key</code> defined in <code>cfg</code>, and it contains
+     * all stinrgs
+     * @param cfg container map
+     * @param key key to use
+     * @param lambda consumer of the string map
+     */
+    @SuppressWarnings("unchecked")
     public static void forDefinedStringMap(Map<String, Object> cfg, String key, Consumer<Map<String, String>> lambda) {
         Object t = cfg.get(key);
         if (t instanceof Map) {
+            Map<?,?> unchecked = (Map<?,?>)t;
+            for (Map.Entry<?,?> e: unchecked.entrySet()) {
+                if (!(e.getValue() instanceof String)) {
+                    return;
+                }
+            }
             lambda.accept((Map<String, String>) t);
         }
     }
 
+    /**
+     * Parses the define map in this object, if it is defined.
+     * @param cfg container map.
+     * @param key key to store
+     * @param consumer parser lambda
+     * @param <T> type of the return value
+     * @return parsed instance, or null if value at the <code>key</code> is not found or is not a map.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T parseDefinedObjectMap(Map<String,Object> cfg, String key, MapParser<T> consumer) {
+        Object t = cfg.get(key);
+        if (t instanceof Map) {
+            return consumer.accept((Map<String, Object>) t);
+        }  else {
+            return null;
+        }
+    }
+
+    public static String getDefinedString(Map<String,Object> cfg, String key) {
+        Object retVal = cfg.get(key);
+        if (retVal == null) {
+            return null;
+        } else if (retVal instanceof String) {
+            return (String)retVal;
+        } else {
+            return null;
+        }
+    }
+
+    public static Boolean getDefinedBoolean(Map<String,Object> cfg, String key) {
+        Object retVal = cfg.get(key);
+        if (retVal == null) {
+            return null;
+        } else if (retVal instanceof Boolean) {
+            return (Boolean) retVal;
+        } else {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public static void forDefinedObjectMap(Map<String, Object> cfg, String key, Consumer<Map<String, Object>> lambda) {
         Object t = cfg.get(key);
         if (t instanceof Map) {
@@ -200,32 +375,58 @@ public class YamlConfigurationBuilder {
     public static SidecarOutput buildSidecarOutputFromYAML(Map<String, Object> sidecarOutputYaml) {
 
         if (sidecarOutputYaml != null) {
-            SidecarOutputImpl sidecarOutput = new SidecarOutputImpl();
-            forDefinedInteger(sidecarOutputYaml, "code", sidecarOutput::setCode);
-            forDefinedString(sidecarOutputYaml, "payload", sidecarOutput::setPayload);
-            forDefinedStringList(sidecarOutputYaml, "dropHeaders", sidecarOutput::setDropHeaders);
-            forDefinedStringMap(sidecarOutputYaml, "addHeaders", sidecarOutput::setAddHeaders);
+            SidecarOutputImpl retVal = new SidecarOutputImpl();
+            forDefinedInteger(sidecarOutputYaml, "code", retVal::setCode);
+            forDefinedString(sidecarOutputYaml, "payload", retVal::setPayload);
+            forDefinedStringList(sidecarOutputYaml, "dropHeaders", retVal::setDropHeaders);
+            forDefinedStringMap(sidecarOutputYaml, "addHeaders", retVal::setAddHeaders);
 
-            forDefinedString(sidecarOutputYaml, "message", sidecarOutput::setMessage);
-            forDefinedObjectMap(sidecarOutputYaml, "json", (m) -> {
-                sidecarOutput.setJson(AFKLMSidecarProcessor.objectMapper.valueToTree(m));
+            forDefinedString(sidecarOutputYaml, "unchangedUntil", (str) -> {
+                Matcher m = jsonPattern.matcher(str);
+                if (m.matches()) {
+                    retVal.setUnchangedUntil(parseJSONDate(str));
+                }
             });
 
-            return sidecarOutput;
+            forDefinedObjectMap(sidecarOutputYaml, "changeRoute", (m) -> retVal.setChangeRoute(buildOutputRoutingFromYaml(m)));
+            forDefinedObjectMap(sidecarOutputYaml, "relayParams", retVal::setRelayParams);
+
+            forDefinedString(sidecarOutputYaml, "message", retVal::setMessage);
+            forDefinedObjectMap(sidecarOutputYaml, "json", retVal::setJSONPayload);
+
+            return retVal;
         } else {
             return null;
         }
     }
 
+    private static SidecarOutputRouting buildOutputRoutingFromYaml(Map<String, Object> yaml) {
+        if (yaml == null) {
+            return null;
+        }
+
+        SidecarOutputRouting r = new SidecarOutputRouting();
+        forDefinedString(yaml, "host", r::setHost);
+        forDefinedString(yaml, "file", r::setFile);
+        forDefinedString(yaml, "httpVerb", r::setHttpVerb);
+        forDefinedString(yaml, "uri", r::setUri);
+        forDefinedInteger(yaml, "port", r::setPort);
+
+        if (r.containsOnlyNulls()) {
+            return null;
+        } else {
+            return r;
+        }
+    }
+
     public static SidecarInput buildSidecarInputFromYAML(Map<String, Object> lambdaIn) {
         SidecarInput sidecarInput = new SidecarInput();
-        forDefinedString(lambdaIn, "point", (s) -> {
-            sidecarInput.setPoint(SidecarInputPoint.valueOf(s));
-        });
 
-        forDefinedString(lambdaIn, "synchronicity", (s) -> {
-            sidecarInput.setSynchronicity(SidecarSynchronicity.valueOf(s));
-        });
+        forDefinedString(lambdaIn, "masheryMessageId", sidecarInput::setMasheryMessageId);
+
+        forDefinedString(lambdaIn, "point", (s) -> sidecarInput.setPoint(SidecarInputPoint.valueOf(s)));
+
+        forDefinedString(lambdaIn, "synchronicity", (s) -> sidecarInput.setSynchronicity(SidecarSynchronicity.valueOf(s)));
 
         forDefinedObjectMap(lambdaIn, "request", (rMap) -> {
             final SidecarInputHTTPMessage msg = new SidecarInputHTTPMessage();
@@ -263,16 +464,10 @@ public class YamlConfigurationBuilder {
 
         forDefinedString(lambdaIn, "packageKey", sidecarInput::setPackageKey);
 
-        forDefinedObjectMap(lambdaIn, "operation", (rMap) -> {
-            readOperation(sidecarInput, rMap);
-        });
-        forDefinedObjectMap(lambdaIn, "token", (rMap) -> {
-            readToken(sidecarInput, rMap);
-        });
+        forDefinedObjectMap(lambdaIn, "operation", (rMap) -> readOperation(sidecarInput, rMap));
+        forDefinedObjectMap(lambdaIn, "token", (rMap) -> readToken(sidecarInput, rMap));
 
-        forDefinedObjectMap(lambdaIn, "routing", (rMap) -> {
-            readRouting(sidecarInput, rMap);
-        });
+        forDefinedObjectMap(lambdaIn, "routing", (rMap) -> readRouting(sidecarInput, rMap));
 
         forDefinedString(lambdaIn, "serviceId", sidecarInput::setServiceId);
         forDefinedString(lambdaIn, "endpointId", sidecarInput::setEndpointId);
@@ -284,10 +479,38 @@ public class YamlConfigurationBuilder {
         return sidecarInput;
     }
 
+    /**
+     * Iterates over the array containing maps.
+     * @param obj Object to traverse
+     * @param c consumer to be called for each found.
+     */
+    @SuppressWarnings("unchecked")
+    public static void iterateListOfObjectMaps(Object obj, Consumer<Map<String,Object>> c) {
+        if (obj instanceof List) {
+            List<Object> l = (List<Object>)obj;
+            l.forEach((listObj) -> {
+                if (listObj instanceof Map) {
+                    Map<String,Object> v = (Map<String,Object>)listObj;
+                    c.accept(v);
+                }
+            });
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public static void forEachObjectMapIn(Map<String,Object> yaml, BiConsumer<String, Map<String,Object>> c) {
         yaml.forEach((key, value) -> {
             Map<String,Object> yamlVal = (Map<String,Object>) value;
             c.accept(key, yamlVal);
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void forEachNamedArrayIn(Map<String,Object> yaml, BiConsumer<String, List<Object>> c) {
+        yaml.forEach((key, value) -> {
+            if (value instanceof List) {
+                c.accept(key, (List<Object>)value);
+            }
         });
     }
 
@@ -308,13 +531,7 @@ public class YamlConfigurationBuilder {
         forDefinedString(lambdaIn, "grantType", token::setGrantType);
         forDefinedString(lambdaIn, "scope", token::setScope);
         forDefinedString(lambdaIn, "userContext", token::setUserContext);
-        forDefinedString(lambdaIn, "expires", (v) -> {
-            try {
-                token.setExpires(AFKLMSidecarProcessor.jsonDate.parse(v));
-            } catch (ParseException ex) {
-                // Do we need to catch it?
-            }
-        });
+        forDefinedString(lambdaIn, "expires", (v) -> token.setExpires(parseJSONDate(v)));
 
 
         sidecarInput.setToken(token);
@@ -326,5 +543,44 @@ public class YamlConfigurationBuilder {
         forDefinedString(lambdaIn, "uri", r::setUri);
 
         sidecarInput.setRouting(r);
+    }
+
+    /**
+     * Loads all Yaml documents into memory.
+     * @param clazz reference class
+     * @param resource resource of that class to load
+     * @return Iterator of yaml documents, or null if resource was not possible.
+     */
+    static Iterator<Object> loadAllYamlDocuments(Class clazz, String resource) {
+        try (InputStream is = clazz.getResourceAsStream(resource)) {
+            if (is != null) {
+                ArrayList<Object> loadedDocs = new ArrayList<>();
+                Iterator<Object> rawIter =  new Yaml().loadAll(new InputStreamReader(is)).iterator();
+                rawIter.forEachRemaining(loadedDocs::add);
+
+                return loadedDocs.iterator();
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            // Ignore it.
+            return null;
+        }
+    }
+
+    /**
+     * Retrieves next YAML document from the structure loaded with {@link #loadAllYamlDocuments(Class, String)}.
+     * @param obj iterator object
+     * @return next instance in the iterator, if found. Otherwise null will be returned.
+     */
+    @SuppressWarnings("unchecked")
+    static Map<String, Object> nextYamlDocument(Iterator<Object> obj) {
+        if (obj == null) {
+            return null;
+        } else if (obj.hasNext()) {
+            return (Map<String, Object>) obj.next();
+        } else {
+            return null;
+        }
     }
 }

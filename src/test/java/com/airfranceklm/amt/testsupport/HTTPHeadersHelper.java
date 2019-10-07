@@ -43,16 +43,19 @@ class HTTPHeadersHelper {
         if (sourceData != null && sourceData.size() > 0) {
             sourceData.forEach((key, value) -> {
                 expect(mockHeaders.get(key)).andReturn(getStringValueOf(value)).anyTimes();
+                expect(mockHeaders.contains(key)).andReturn(true).anyTimes();
 
                 // This is a simple support for header case insensitivity
                 if (!key.equals(key.toLowerCase())) {
                     expect(mockHeaders.get(key.toLowerCase())).andReturn(getStringValueOf(value)).anyTimes();
+                    expect(mockHeaders.contains(key.toLowerCase())).andReturn(true).anyTimes();
                 }
             });
         }
 
         // A request to the missing header will return null
         expect(mockHeaders.get(anyString())).andReturn(null).anyTimes();
+        expect(mockHeaders.contains(anyString())).andReturn(false).anyTimes();
 
         return mockHeaders;
     }

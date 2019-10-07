@@ -1,4 +1,4 @@
-[func]: ../../../../../../doc/sidecar-functional-flow.png "sidecar flow"
+[func]: ../../../../../doc/sidecar-functional-flow.png "sidecar flow"
 
 # Air France/KLM Mashery sidecar Processor for Mashery Local
 
@@ -27,34 +27,34 @@ Air Frane/KLM documentation) "lambda" because the implementation of the pre-proc
 A pluggable transport interfaces is supported. It allows 
 integrating any network source that provide compatible responses as a sidecar. If you run Mashery Local on-premise, then 
 HTTP stack (and eventually OpenFAAS stack) is provided out-of-the-box. Organization-specific transports 
-[can be added](../../../../../../doc/extending_transport.md)
+[can be added](../../../../../doc/extending_transport.md)
 via extending the provided codebase, such as e.g. to include RMI or Kafka interfaces.
 
 ## Supported stacks
 Most of the sidecars will be reachable via HTTP calls, with an option to make call-outs to
 AWS Lambda functions. HTTP is the default invocation stack.
 
-See the [stacks page](../../../../../../doc/stacks.md) for the information about currently supported stacks. 
+See the [stacks page](../../../../../doc/stacks.md) for the information about currently supported stacks. 
 
 # Jump-starting into the sidecar development
 Sidecars are simple and quick to develop. Yet, as a component in a distributed system, it requires a good understnading
 from the developer on what he is doing and why he is doing things. Please following this track to get started:
 
-1. Familiarize yourself with [key concepts](../../../../../../doc/key_concepts.md). After reading this note, you should
+1. Familiarize yourself with [key concepts](../../../../../doc/key_concepts.md). After reading this note, you should
    understand terms *idempotent call*, *pre-flight check*, and *error handling policy*. These are essential for the 
    next step:
-2. Read our [design guidelines](../../../../../../doc/designing-sidecar.md). This page explains why you do need and,
+2. Read our [design guidelines](../../../../../doc/designing-sidecar.md). This page explains why you do need and,
    most importantly, why you **do not** need a sidecar;
-3. Get inspired with our [solution showcases](../../../../../../doc/showcases.md). If you are trying to solve problem
+3. Get inspired with our [solution showcases](../../../../../doc/showcases.md). If you are trying to solve problem
    that is similar to the one we illustrate, you can use these examples for your inspiration.
-4. You still believe sidecar is a good choice for you? Awesome! You need to [install](../../../../../../doc/install.md)
-   so that you can [play around and do some PoC's](../../../../../../doc/first_steps.md).
+4. You still believe sidecar is a good choice for you? Awesome! You need to [install](../../../../../doc/install.md)
+   so that you can [play around and do some PoC's](../../../../../doc/first_steps.md).
 5. Now, finally, it's time for the heavy stuff:
-   - [Sidecar input and output](../../../../../../doc/sidecar_io.md) describes inputs the sidecar can receive and
+   - [Sidecar input and output](../../../../../doc/sidecar_io.md) describes inputs the sidecar can receive and
      the outputs it will provide;
    - Code and deploy your use case for testing. 
-   - Configure the endpoint using [in-Mashery configuration](../../../../../../doc/mashery_config.md). Additionally,
-     if you need a hybrid deployment, you need to figure out how to [override Mashery configuration locally](../../../../../../doc/local_config.md).
+   - Configure the endpoint using [in-Mashery configuration](../../../../../doc/mashery_config.md). Additionally,
+     if you need a hybrid deployment, you need to figure out how to [override Mashery configuration locally](../../../../../doc/local_config.md).
    - Test your setup.
    - Fix bugs, test again, promote to live.
    - Repeat.

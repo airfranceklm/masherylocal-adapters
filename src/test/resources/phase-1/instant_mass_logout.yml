@@ -47,6 +47,7 @@ Instant massive logout:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -93,6 +94,7 @@ Instant massive logout:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -147,6 +149,7 @@ Instant massive logout:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf

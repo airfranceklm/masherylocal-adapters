@@ -44,6 +44,7 @@ Custom JWT Validation Scenarios:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -122,6 +123,7 @@ Custom JWT Validation Scenarios:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf

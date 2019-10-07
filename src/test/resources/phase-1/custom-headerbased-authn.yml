@@ -15,6 +15,7 @@ Authorization Servers issued JWT Tokens Validation:
     pre-processor configuration:
       # Headers should be present and should contain value in it.
       synchronicity: request-response
+      expand-input: remoteAddress
       require-request-headers: authorization
       sidecar-param-B2C: "false"
       sidecar-param-B2E: "true"
@@ -44,11 +45,14 @@ Authorization Servers issued JWT Tokens Validation:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
           serviceId: aServiceId
           endpointId: anEndpointId
+
+          remoteAddress: 127.0.0.1
           request:
             headers:
               authorization: B
@@ -83,11 +87,13 @@ Authorization Servers issued JWT Tokens Validation:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
           serviceId: aServiceId
           endpointId: anEndpointId
+          remoteAddress: 127.0.0.1
           request:
             headers:
               authorization: B
@@ -155,6 +161,7 @@ Custom Header-Based Authentication:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -205,6 +212,7 @@ Custom Header-Based Authentication:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -253,6 +261,7 @@ Custom Header-Based Authentication:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -294,6 +303,7 @@ Custom Header-Based Authentication:
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf

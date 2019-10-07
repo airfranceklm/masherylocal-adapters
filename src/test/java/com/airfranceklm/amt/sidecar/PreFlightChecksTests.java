@@ -42,7 +42,8 @@ public class PreFlightChecksTests extends AFKLMSidecarMockSupport {
         });
 
         baseDSL.configurePreflightInput((cl) -> {
-            cl.synchronicity(SidecarSynchronicity.RequestResponse)
+            cl.withUnitTestMessageId()
+                    .synchronicity(SidecarSynchronicity.RequestResponse)
                     .point(SidecarInputPoint.Preflight)
                     .serviceId("fServiceId")
                     .endpointId("fEndpointId")
@@ -81,7 +82,8 @@ public class PreFlightChecksTests extends AFKLMSidecarMockSupport {
         });
 
         dsl.configureSidecarInput(cl -> {
-            cl.synchronicity(SidecarSynchronicity.Event)
+            cl.withUnitTestMessageId()
+                    .synchronicity(SidecarSynchronicity.Event)
                     .point(SidecarInputPoint.PreProcessor)
                     .serviceId("fServiceId")
                     .endpointId("fEndpointId")
@@ -102,7 +104,8 @@ public class PreFlightChecksTests extends AFKLMSidecarMockSupport {
         dsl.configureAPIOriginRequest((c) -> c.expectAddHeader("x-preflight", "preflight-passing"));
 
         dsl.configureSidecarInput((c) -> {
-            c.synchronicity(SidecarSynchronicity.Event)
+            c.withUnitTestMessageId()
+                    .synchronicity(SidecarSynchronicity.Event)
                     .point(SidecarInputPoint.PreProcessor)
                     .serviceId("fServiceId")
                     .endpointId("fEndpointId")

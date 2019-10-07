@@ -10,6 +10,7 @@ import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.ProcessorEvent;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Stateless sidecar configuration store. This store is provided to support the unit testing. The store will rebuild
@@ -55,12 +56,19 @@ public class StatelessSidecarConfigurationStore implements SidecarConfigurationS
     }
 
     @Override
-    public void acceptConfigurationChange( String serviceId, String endpointID, SidecarConfiguration cfg) {
+    public void acceptConfigurationChange(MasheryPreprocessorPointReference ref,
+                                          String declaredIn,
+                                          SidecarConfiguration cfg) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void forget(String serviceId, String endpointID, SidecarInputPoint point) {
+    public void forget(MasheryPreprocessorPointReference ref) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<MasheryPreprocessorPointReference> getDeclaredIn(String file) {
         throw new UnsupportedOperationException();
     }
 }

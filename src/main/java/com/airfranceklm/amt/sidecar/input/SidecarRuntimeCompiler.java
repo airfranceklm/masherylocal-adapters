@@ -41,7 +41,7 @@ public class SidecarRuntimeCompiler {
         SidecarPreProcessorInputBuilderImpl retVal = new SidecarPreProcessorInputBuilderImpl(cfg);
 
         int errors = compileCommon(cfg, retVal);
-        // Scope filter
+        retVal.addExpander(retVal::expandMasheryMessageId);
 
 
         if (cfg.requiresRequestHeaders()) {
@@ -82,6 +82,7 @@ public class SidecarRuntimeCompiler {
         SidecarPostProcessorInputBuilderImpl retVal = new SidecarPostProcessorInputBuilderImpl(cfg);
 
         int errors = compileCommon(cfg, retVal);
+        retVal.addExpander(retVal::expandMasheryMessageId);
         retVal.addExpander(retVal::expandResponseCode);
 
         if (cfg.needsExpansionOf(InputScopeExpansion.RequestHeaders)) {
@@ -220,6 +221,7 @@ public class SidecarRuntimeCompiler {
         }
 
         retVal.addExpander(retVal::expandPreflightSidecarPoint);
+        retVal.addExpander(retVal::expandMasheryMessageId);
 
         if (retVal.getSidecarConfig().requiresPreflightApplicationEAVs()) {
             retVal.assertPreflightApplicationEAVs();

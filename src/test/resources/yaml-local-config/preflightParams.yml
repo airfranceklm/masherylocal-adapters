@@ -1,0 +1,12 @@
+preflight:
+  params:
+  # No effect
+---
+preflight:
+  params:
+    str: this is a string
+    number: 150
+    # No effect
+
+
+

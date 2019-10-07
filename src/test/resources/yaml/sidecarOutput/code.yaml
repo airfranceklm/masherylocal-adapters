@@ -1,0 +1,7 @@
+code:
+  # No effect
+---
+code: 301
+---
+code: "301"
+  # Wrong type; will be ignored.

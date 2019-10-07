@@ -1,0 +1,7 @@
+payload:
+  # No effect
+---
+payload: 301
+  # Wrong type; will be ignored.
+---
+payload: "Payload"

@@ -25,12 +25,17 @@ public class APIOriginResponseDSL {
     }
 
     public APIOriginResponseDSL withPayload(String payload) {
-        data.setBody(payload);
-        data.setBodyLength(payload == null ? 0 : payload.length());
+        data.setPayload(payload);
+        data.setPayloadLength(payload == null ? 0 : payload.length());
         return this;
     }
 
     public APIOriginResponseDSL withNoPayload() {
         return withPayload(null);
+    }
+
+    public void withPayloadFromResource(Class owner, String resourceName) {
+        data.setPayload(null);
+        data.setPayload(owner, resourceName);
     }
 }

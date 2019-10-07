@@ -5,6 +5,7 @@ import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.ProcessorEvent;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -29,7 +30,11 @@ public class MasheryConfigSidecarConfigurationBuilder {
 
     private static final Pattern preflightParamPattern = Pattern.compile("preflight-param-(.{1,})");
 
-    private static final String CFG_SYNCHRONICITY = "synchronicity";
+    static final String CFG_SYNCHRONICITY = "synchronicity";
+    static final String CFG_TIMEOUT = "timeout";
+    static final String CFG_FAILSAFE = "failsafe";
+    static final String CFG_IDEMPOTENT_AWARE = "idempotent-aware";
+
     private static final String CFG_REQUIRED_REQUEST_HEADERS = "require-request-headers";
 
     private static final String CFG_INCLUDE_REQUEST_HEADERS = "include-request-headers";
@@ -42,11 +47,10 @@ public class MasheryConfigSidecarConfigurationBuilder {
     private static final String CFG_INCLUDE_PACKAGE_KEY_EAVS = "include-packageKey-eavs";
 
     private static final String CFG_STACK = "stack";
-    private static final String CFG_EXPAND = "expand-input";
+    static final String CFG_EXPAND = "expand-input";
     private static final String CFG_EXPAND_PREFLIGHT = "expand-preflight";
     private static final String CFG_REQUIRE_EAVS = "require-eavs";
     private static final String CFG_INCLUDE_EAVS = "include-eavs";
-    private static final String CFG_FAILSAFE = "failsafe";
 
     // ------------------------------------------------------------------
     // Pre-flight settings
@@ -60,13 +64,14 @@ public class MasheryConfigSidecarConfigurationBuilder {
 
     // ------------------------------------------------------------------
     // Configuration values
-    private static final String CFG_VAL_SYNC_EVENT = "event";
-    private static final String CFG_VAL_REQUEST_RESPONSE = "request-response";
-    private static final String CFG_VAL_NON_BLOCKING = "non-blocking";
+    static final String CFG_VAL_SYNC_EVENT = "event";
+    static final String CFG_VAL_REQUEST_RESPONSE = "request-response";
+    static final String CFG_VAL_NON_BLOCKING = "non-blocking";
 
     private static final Pattern numberPattern = Pattern.compile("\\d+");
     private static final Pattern floatPattern = Pattern.compile("\\d+\\.\\d+");
     private static final Pattern booleanPattern = Pattern.compile("true|false");
+    private static final Pattern timeReferencePattern = Pattern.compile("(\\d+(\\.\\d+)?)([sm]{1})");
 
 
     public SidecarConfiguration buildFrom(ProcessorEvent pe) {
@@ -80,11 +85,20 @@ public class MasheryConfigSidecarConfigurationBuilder {
     }
 
     private SidecarConfiguration buildFrom(PreProcessEvent ppe) {
-        return getSidecarConfiguration(SidecarInputPoint.PreProcessor, ppe.getEndpoint().getProcessor().getPreProcessorParameters());
+        final SidecarConfiguration retVal = getSidecarConfiguration(SidecarInputPoint.PreProcessor, ppe.getEndpoint().getProcessor().getPreProcessorParameters());
+        applyEndpointIdentification(ppe, retVal);
+        return retVal;
+    }
+
+    private void applyEndpointIdentification(ProcessorEvent ppe, SidecarConfiguration retVal) {
+        retVal.setServiceId(ppe.getEndpoint().getAPI().getExternalID());
+        retVal.setEndpointId(ppe.getEndpoint().getExternalID());
     }
 
     private SidecarConfiguration buildFrom(PostProcessEvent ppe) {
-        return getSidecarConfiguration(SidecarInputPoint.PostProcessor, ppe.getEndpoint().getProcessor().getPostProcessorParameters());
+        final SidecarConfiguration retVal = getSidecarConfiguration(SidecarInputPoint.PostProcessor, ppe.getEndpoint().getProcessor().getPostProcessorParameters());
+        applyEndpointIdentification(ppe, retVal);
+        return retVal;
     }
 
     /**
@@ -108,8 +122,7 @@ public class MasheryConfigSidecarConfigurationBuilder {
         retVal.setStack("http");
         retVal.setFailsafe(false);
 
-        if (cfg.containsKey(CFG_SYNCHRONICITY)) {
-            String syncVal = cfg.get(CFG_SYNCHRONICITY);
+        readString(cfg, CFG_SYNCHRONICITY, (syncVal) -> {
             switch (syncVal) {
                 case CFG_VAL_REQUEST_RESPONSE:
                     retVal.setSynchronicity(SidecarSynchronicity.RequestResponse);
@@ -124,7 +137,12 @@ public class MasheryConfigSidecarConfigurationBuilder {
                     retVal.incrementError();
                     break;
             }
-        }
+        });
+
+        readString(cfg, CFG_TIMEOUT, (timeoutVal) -> {
+            parseSidecarTimeout(timeoutVal, retVal);
+        });
+
 
         // ----------------------------------------------------------------
         // Request headers.
@@ -146,6 +164,10 @@ public class MasheryConfigSidecarConfigurationBuilder {
 
         readString(cfg, CFG_FAILSAFE, (token) -> {
             retVal.setFailsafe(Boolean.parseBoolean(token));
+        });
+
+        readString(cfg, CFG_IDEMPOTENT_AWARE, (token) -> {
+            retVal.setIdempotentAware(Boolean.parseBoolean(token));
         });
 
         readList(cfg, CFG_EXPAND, (inputExpansions) -> {
@@ -230,21 +252,7 @@ public class MasheryConfigSidecarConfigurationBuilder {
         grep(cfg, preflightParamPattern, retVal::addPreflightParam);
 
         readList(cfg, CFG_EXPAND_PREFLIGHT, (tokens) -> {
-            int missed = parseExpansionList(tokens, (ise) -> {
-                switch (ise) {
-                    // These options make no sense to expand, as these operations
-                    // are unlikely to be repeatable. A regular sidecar should take
-                    // care of filtering these parameters.
-                    case RequestPayload:
-                    case ResponsePayload:
-                    case Operation:
-                        retVal.incrementError();
-                        break;
-                    default:
-                        retVal.addPreflightExpansions(ise);
-                }
-            });
-
+            int missed = parsePreflightExpansionList(tokens, retVal);
             retVal.incrementError(missed);
         });
 
@@ -255,7 +263,40 @@ public class MasheryConfigSidecarConfigurationBuilder {
         return retVal;
     }
 
-    private int parseExpansionList(String[] expandos, Consumer<InputScopeExpansion> c) {
+    static void parseSidecarTimeout(String timeoutVal, SidecarConfiguration retVal) {
+        Matcher m = timeReferencePattern.matcher(timeoutVal);
+        if (m.matches()) {
+            float f = Float.parseFloat(m.group(1));
+            TimeUnit tu = TimeUnit.SECONDS;
+            if ("m".equals(m.group(3))) {
+                tu = TimeUnit.MINUTES;
+            }
+            retVal.setSidecarTimeout(Math.round(f * tu.toMillis(1)));
+        } else {
+            retVal.incrementError();
+        }
+    }
+
+    static int parsePreflightExpansionList(String[] tokens, SidecarConfiguration retVal) {
+        return parseExpansionList(tokens, (ise) -> {
+            switch (ise) {
+                // These options make no sense to expand, as these operations
+                // are unlikely to be repeatable. A regular sidecar should take
+                // care of filtering these parameters.
+                case Operation:
+                case RequestPayload:
+                case RelayParams:
+                case AllResponseHeaders:
+                case ResponsePayload:
+                    retVal.incrementError();
+                    break;
+                default:
+                    retVal.addPreflightExpansions(ise);
+            }
+        });
+    }
+
+    static int parseExpansionList(String[] expandos, Consumer<InputScopeExpansion> c) {
         int errors = 0;
         for (String s : expandos) {
             switch (s.trim().toLowerCase()) {
@@ -315,8 +356,12 @@ public class MasheryConfigSidecarConfigurationBuilder {
      * @param lambda consumer lambda that will receive all matching keys and corresponding values.
      */
     private void grep(Map<String, String> cfg, Pattern p, BiConsumer<String, String> lambda) {
+        if (cfg == null) {
+            return;
+        }
+
         cfg.forEach((key, value) -> {
-            Matcher keyM = sidecarParamPattern.matcher(key);
+            Matcher keyM = p.matcher(key);
             if (keyM.matches()) {
                 lambda.accept(key, value);
             }
@@ -324,6 +369,10 @@ public class MasheryConfigSidecarConfigurationBuilder {
     }
 
     private void readString(Map<String, String> cfg, String prop, IncludeSingleTokenOp lambda) {
+        if (cfg == null) {
+            return;
+        }
+
         if (cfg.containsKey(prop)) {
             lambda.accept(cfg.get(prop));
         }
@@ -337,6 +386,9 @@ public class MasheryConfigSidecarConfigurationBuilder {
      * @param lambda lambda processing the response.
      */
     private void readList(Map<String, String> cfg, String prop, IncludeTokensOp lambda) {
+        if (cfg == null) {
+            return;
+        }
         if (cfg.containsKey(prop)) {
             lambda.accept(ParseUtils.splitValueList(cfg.get(prop)));
         }
@@ -351,6 +403,10 @@ public class MasheryConfigSidecarConfigurationBuilder {
      * @param lambda  receiving lambda function.
      */
     private void readRequireIncludePair(Map<String, String> cfg, String require, String include, IncludeConfigTokenOp lambda) {
+        if (cfg == null) {
+            return;
+        }
+
         if (cfg.containsKey(require)) {
             lambda.accept(ConfigRequirement.Required, ParseUtils.splitValueList(cfg.get(require)));
         }
@@ -376,6 +432,10 @@ public class MasheryConfigSidecarConfigurationBuilder {
     }
 
     private void readPreProcessorScopeFilters(SidecarConfiguration retVal, Map<String, String> cfg) {
+        if (cfg == null) {
+            return;
+        }
+
         Pattern p = Pattern.compile("filter(out)?-(\\w{3,})(\\(([\\w-]{1,})\\))?(-([\\w-]+)(\\.\\w+)?)?");
         cfg.forEach((key, value) -> {
             Matcher m = p.matcher(key);

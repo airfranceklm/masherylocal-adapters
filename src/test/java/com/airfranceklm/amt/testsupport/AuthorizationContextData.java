@@ -43,14 +43,7 @@ public class AuthorizationContextData extends RequestCaseDatum {
         forDefinedString(yaml, "scope", this::setScope);
         forDefinedString(yaml, "user context", this::setUserContext);
         forDefinedString(yaml, "grant type", this::setGrantType);
-        forDefinedString(yaml, "expires", (v) -> {
-            try {
-                this.expires = AFKLMSidecarProcessor.jsonDate.parse(v);
-            } catch (ParseException ex) {
-                final String format = String.format("Malformed JSON date %s", v);
-                fail(format);
-            }
-        });
+        forDefinedString(yaml, "expires", (v) -> this.expires = AFKLMSidecarProcessor.parseJSONDate(v));
     }
 
     AuthorizationContextData(Map<String, Object> yaml) {

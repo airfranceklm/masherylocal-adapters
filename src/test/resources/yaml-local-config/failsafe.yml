@@ -1,0 +1,5 @@
+failsafe: true
+---
+failsafe: false
+---
+failsafe: wrong confguration

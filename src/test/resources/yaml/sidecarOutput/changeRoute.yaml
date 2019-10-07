@@ -1,0 +1,16 @@
+changeRoute:
+  # No effect
+---
+changeRoute:
+  host: aHost
+  file: aFile
+  httpVerb: get
+  uri: aUri
+  port: 4567
+---
+changeRoute:
+  host: 34
+  file: 45
+  httpVerb: 56
+  uri: 554
+  port: port=4567

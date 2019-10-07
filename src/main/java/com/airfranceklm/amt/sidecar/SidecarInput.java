@@ -22,7 +22,7 @@ public class SidecarInput {
     private static final byte[] RIGHT_CURLY_BRACE = stdOf("}");
     private static final byte[] GT_THEN = stdOf(">");
 
-    private String sidecarCallId;
+    private String masheryMessageId;
 
     // Base elements of the input.
     private SidecarInputPoint point;
@@ -57,12 +57,12 @@ public class SidecarInput {
         this.token = token;
     }
 
-    public String getSidecarCallId() {
-        return sidecarCallId;
+    public String getMasheryMessageId() {
+        return masheryMessageId;
     }
 
-    public void setSidecarCallId(String sidecarCallId) {
-        this.sidecarCallId = sidecarCallId;
+    public void setMasheryMessageId(String masheryMessageId) {
+        this.masheryMessageId = masheryMessageId;
     }
 
     /**
@@ -303,7 +303,8 @@ public class SidecarInput {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SidecarInput that = (SidecarInput) o;
-        return point == that.point &&
+        return Objects.equals(masheryMessageId, that.masheryMessageId) &&
+                point == that.point &&
                 synchronicity == that.synchronicity &&
                 Objects.equals(params, that.params) &&
                 Objects.equals(request, that.request) &&
@@ -344,7 +345,7 @@ public class SidecarInput {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Sidecar input: ");
+        sb.append("Sidecar input").append("@").append(masheryMessageId).append(": ");
         sb.append(synchronicity).append(" type at ").append(point).append(" point: ");
 
         if (params != null) {

@@ -128,4 +128,12 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
     public void throwPreflightException(String msg) {
         this.throwPreflightException = msg;
     }
+
+    /**
+     * Creates an instnace of this DSL.
+     * @return empty instance of DSL class.
+     */
+    public static SidecarTestDSL make() {
+        return new SidecarTestDSL();
+    }
 }

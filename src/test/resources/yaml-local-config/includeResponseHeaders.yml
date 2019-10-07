@@ -1,0 +1,18 @@
+response-headers:
+  # No effect
+---
+response-headers:
+  include:
+    # No effect
+---
+response-headers:
+  include:
+    - x-afklm-h1
+    - x-AFKLM-h2
+---
+response-headers:
+  include:
+    - x-afklm-h1
+    - 45
+    # Will have no effect: contains number
+---

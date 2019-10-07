@@ -6,9 +6,12 @@ import static com.airfranceklm.amt.sidecar.config.YamlConfigurationBuilder.*;
 
 public class APIOriginResponse extends RequestCaseDatum {
     Map<String,String> headers;
-    String body;
+    String payload;
     int code;
-    long bodyLength;
+    long payloadLength;
+
+    Class payloadOwner;
+    String payloadResource;
 
     APIOriginResponse() {
         super();
@@ -24,12 +27,12 @@ public class APIOriginResponse extends RequestCaseDatum {
 
         forDefinedStringMap(yaml, "headers", this::setHeaders);
         forDefinedInteger(yaml, "code", this::setCode);
-        forDefinedString(yaml, "payload", this::setBody);
+        forDefinedString(yaml, "payload", this::setPayload);
 
-        if (body != null) {
-            this.bodyLength = body.length();
+        if (payload != null) {
+            this.payloadLength = payload.length();
         } else {
-            bodyLength = 0;
+            payloadLength = 0;
         }
     }
 
@@ -37,8 +40,8 @@ public class APIOriginResponse extends RequestCaseDatum {
         this.headers = headers;
     }
 
-    public void setBody(String body) {
-        this.body = body;
+    public void setPayload(String payload) {
+        this.payload = payload;
     }
 
     public void setCode(int code) {
@@ -49,15 +52,21 @@ public class APIOriginResponse extends RequestCaseDatum {
         return headers;
     }
 
-    public String getBody() {
-        return body;
+    public String getPayload() {
+        return payload;
     }
 
     public int getCode() {
         return code;
     }
 
-    public void setBodyLength(long bodyLength) {
-        this.bodyLength = bodyLength;
+    public void setPayloadLength(long payloadLength) {
+        this.payloadLength = payloadLength;
+    }
+
+    public void setPayload(Class clazz, String resource) {
+        this.payloadOwner = clazz;
+        this.payloadResource = resource;
+        this.payload = null;
     }
 }

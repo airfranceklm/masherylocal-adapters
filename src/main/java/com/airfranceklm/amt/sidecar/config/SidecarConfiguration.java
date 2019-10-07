@@ -14,6 +14,8 @@ import java.util.function.Consumer;
  * loaded from a local YAML configuration.
  * </p>
  * This configuration isn't immediately executable. A {@link SidecarInputBuilderImpl} needs to be built.
+ * <p>
+ * The configuration also centralized dealing with case insencitivity of the headers.
  */
 public class SidecarConfiguration {
 
@@ -54,13 +56,13 @@ public class SidecarConfiguration {
 
     private Set<SidecarScopeFilterEntry> scopeFilters = new HashSet<>();
 
-    private int sidecarTimeout = 30000;
+    private long sidecarTimeout = 3000L;
 
     private String stack;
 
     private SidecarOutput staticModification;
 
-    int errors = 0;
+    private int errors = 0;
 
 
     public SidecarConfiguration(SidecarInputPoint point) {
@@ -71,6 +73,8 @@ public class SidecarConfiguration {
         idempotentAware = how;
     }
 
+
+
     public boolean isIdempotentAware() {
         return idempotentAware;
     }
@@ -79,6 +83,11 @@ public class SidecarConfiguration {
         preflightEnabled = how;
     }
 
+    /**
+     * Indicates whether pre-flight is enabled (in the default configuration). The processor should use
+     * {@link #demandsPreflightHandling()} instead.
+     * @return
+     */
     public boolean isPreflightEnabled() {
         return preflightEnabled;
     }
@@ -119,17 +128,18 @@ public class SidecarConfiguration {
         filterOutNulls(str, (s) -> {
             preflightHeaders.add(new ConfigSetting(s.toLowerCase(), req));
         });
+
     }
 
     void processPreflightEAVs(ConfigRequirement req, String... str) {
         filterOutNulls(str, (s) -> {
-            preflightEAVs.add(new ConfigSetting(s.toLowerCase(), req));
+            preflightEAVs.add(new ConfigSetting(s, req));
         });
     }
 
     void processPreflightPackageKeyEAVs(ConfigRequirement req, String... str) {
         filterOutNulls(str, (s) -> {
-            preflightPackageKeyEAVs.add(new ConfigSetting(s.toLowerCase(), req));
+            preflightPackageKeyEAVs.add(new ConfigSetting(s, req));
         });
     }
 
@@ -152,6 +162,13 @@ public class SidecarConfiguration {
         });
     }
 
+    void skipRequestHeaders(List<String> headers) {
+        if (headers != null && headers.size() > 0) {
+            skipRequestHeaders.addAll(headers);
+            expandTo(InputScopeExpansion.RequestHeaders);
+        }
+    }
+
     void skipRequestHeader(String... headers) {
         Collections.addAll(skipRequestHeaders, ParseUtils.lowercase(headers));
     }
@@ -172,15 +189,37 @@ public class SidecarConfiguration {
         return skipResponseHeaders.size() > 0;
     }
 
+    void skipResponseHeaders(List<String> headers) {
+        if (headers == null) {
+            return;
+        }
+        if (headers.size() > 0) {
+            if (skipResponseHeaders == null) {
+                skipResponseHeaders = new HashSet<>();
+            }
+
+            skipResponseHeaders.addAll(headers);
+            expandTo(InputScopeExpansion.ResponseHeaders);
+        }
+    }
+
     void skipResponseHeaders(String... headers) {
         expandTo(InputScopeExpansion.ResponseHeaders);
         Collections.addAll(skipResponseHeaders, headers);
+    }
+
+    boolean requiresNoApplicationEAVs() {
+        return applicationEAVs == null || applicationEAVs.size() == 0;
     }
 
     public void forEachApplicationEAV(Consumer<ConfigSetting> function) {
         if (applicationEAVs != null) {
             applicationEAVs.forEach(function);
         }
+    }
+
+    boolean requiresApplicationEAV(String eav, ConfigRequirement req) {
+        return applicationEAVs.contains(new ConfigSetting(eav, req));
     }
 
     public void forEachPreflightApplicationEAV(Consumer<ConfigSetting> function) {
@@ -192,6 +231,15 @@ public class SidecarConfiguration {
     public Set<InputScopeExpansion> getInputExpansions() {
         return inputExpansions;
     }
+
+    boolean requiresNoPackageKeyEAVs() {
+        return packageKeyEAVs == null || packageKeyEAVs.size() == 0;
+    }
+
+    boolean requiresPackageKeyEAVs(String eav, ConfigRequirement req) {
+        return packageKeyEAVs.contains(new ConfigSetting(eav, req));
+    }
+
 
     public void forEachPackageKeyEAV(Consumer<ConfigSetting> function) {
         if (packageKeyEAVs != null) {
@@ -225,16 +273,26 @@ public class SidecarConfiguration {
      * @param require whether we should require that the client will send this header
      * @param headers list of headers.
      */
-    public void processRequestHeader(ConfigRequirement require, String... headers) {
+    void processRequestHeader(ConfigRequirement require, String... headers) {
         if (headers == null) {
             return;
         }
 
-        expandTo(InputScopeExpansion.RequestHeaders);
-
         filterOutNulls(headers, (s) -> {
-            requestHeaders.add(new ConfigSetting(s, require));
+            requestHeaders.add(new ConfigSetting(s.toLowerCase(), require));
         });
+
+        expandTo(InputScopeExpansion.RequestHeaders);
+    }
+
+    /**
+     * Checks if the specified header is actually required. The name of the header is case-insensitive.
+     *
+     * @param h header
+     * @return true if header is required, false otherwise.
+     */
+    boolean demandsRequestHeader(String h, ConfigRequirement how) {
+        return requestHeaders.contains(new ConfigSetting(h.toLowerCase(), how));
     }
 
     /**
@@ -243,14 +301,19 @@ public class SidecarConfiguration {
      * @param require whether we should require that the client will send this header
      * @param headers list of headers.
      */
-    public void processRequestHeaders(ConfigRequirement require, List<String> headers) {
+    void processRequestHeaders(ConfigRequirement require, List<String> headers) {
         if (headers == null) {
             return;
 
         }
         headers.forEach((v) -> {
-            requestHeaders.add(new ConfigSetting(v, require));
+            requestHeaders.add(new ConfigSetting(v.toLowerCase(), require));
         });
+        expandTo(InputScopeExpansion.RequestHeaders);
+    }
+
+    boolean includesResponseHeaders() {
+        return includeResponseHeaders.size() > 0;
     }
 
     void includeResponseHeader(String... headers) {
@@ -266,12 +329,18 @@ public class SidecarConfiguration {
     }
 
 
-    public boolean includeSpecificResponseHeaders() {
-        return includeResponseHeaders.size() > 0;
-    }
-
     void forEachRequestHeader(Consumer<ConfigSetting> func) {
         requestHeaders.forEach(func);
+    }
+
+    /**
+     * Checks if the header is present.
+     *
+     * @param h header to check
+     * @return true if header is present, false otherwise
+     */
+    boolean includesResponseHeader(String h) {
+        return includeResponseHeaders.contains(h.toLowerCase());
     }
 
     public void forEachIncludedResponseHeader(Consumer<String> func) {
@@ -284,7 +353,7 @@ public class SidecarConfiguration {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getSidecarParameter(String pName) {
+    <T> T getSidecarParameter(String pName) {
         if (sidecarParams == null) {
             return null;
         } else {
@@ -297,7 +366,7 @@ public class SidecarConfiguration {
     }
 
 
-    public void setMaxSize(MaxSizeSetting maxSize) {
+    void setMaxSize(MaxSizeSetting maxSize) {
         this.maxSize = maxSize;
     }
 
@@ -313,18 +382,28 @@ public class SidecarConfiguration {
         return failsafe;
     }
 
-    public void setFailsafe(boolean failsafe) {
+    void setFailsafe(boolean failsafe) {
         this.failsafe = failsafe;
+    }
+
+    /**
+     * Method used only for unit testing. Returns the stack parameters that were read. For production use,
+     * use {@link #getStackParams()}
+     *
+     * @return stack parameters as-is.
+     */
+    Map<String, String> getStackParamsWithoutNullChecks() {
+        return stackParams;
     }
 
     public Map<String, String> getStackParams() {
         if (stackParams == null) {
-            stackParams = new HashMap<String, String>();
+            stackParams = new HashMap<>();
         }
         return stackParams;
     }
 
-    public void setStackParams(Map<String, String> stackParams) {
+    void setStackParams(Map<String, String> stackParams) {
         this.stackParams = stackParams;
     }
 
@@ -353,7 +432,11 @@ public class SidecarConfiguration {
         this.endpointId = endpointId;
     }
 
-    public int getSidecarTimeout() {
+    public void setSidecarTimeout(long sidecarTimeout) {
+        this.sidecarTimeout = sidecarTimeout;
+    }
+
+    public long getSidecarTimeout() {
         return sidecarTimeout;
     }
 
@@ -361,22 +444,22 @@ public class SidecarConfiguration {
         return staticModification;
     }
 
-    public void setStaticModification(SidecarOutput staticModification) {
+    void setStaticModification(SidecarOutput staticModification) {
         this.staticModification = staticModification;
     }
 
     /**
      * Increment an error in this configuration.
      */
-    public void incrementError() {
+    void incrementError() {
         errors++;
     }
 
     /**
      * Increment an error in this configuration.
      */
-    public void incrementError(int count) {
-        errors+= count;
+    void incrementError(int count) {
+        errors += count;
     }
 
     boolean hasErrors() {
@@ -393,8 +476,9 @@ public class SidecarConfiguration {
 
     /**
      * Carry out an action for each header configuration with the indicated configuration requirement
+     *
      * @param req requirement level to match
-     * @param c consumer to receive all.
+     * @param c   consumer to receive all.
      */
     public void forEachHeaderConfig(ConfigRequirement req, Consumer<ConfigSetting> c) {
         requestHeaders.forEach((cs) -> {
@@ -412,7 +496,7 @@ public class SidecarConfiguration {
         return setContains(this.preflightHeaders, ConfigRequirement.Required);
     }
 
-    public boolean includesRequestHeaders() {
+    boolean includesRequestHeaders() {
         return setContains(this.requestHeaders, ConfigRequirement.Included);
     }
 
@@ -432,8 +516,8 @@ public class SidecarConfiguration {
         return setContains(this.preflightPackageKeyEAVs, ConfigRequirement.Required);
     }
 
-    protected boolean setContains(Set<ConfigSetting> set, ConfigRequirement target) {
-        for (ConfigSetting s: set) {
+    private boolean setContains(Set<ConfigSetting> set, ConfigRequirement target) {
+        for (ConfigSetting s : set) {
             if (s.getRequired() == target) {
                 return true;
             }
@@ -442,8 +526,22 @@ public class SidecarConfiguration {
         return false;
     }
 
+    boolean demandsScopeFiltering() {
+        return scopeFilters != null && scopeFilters.size() > 0;
+    }
+
+    boolean demandsScopeFilteringOn(String group, String param, String label, String value, boolean include) {
+        if (scopeFilters == null) {
+            return false;
+        }
+
+        SidecarScopeFilterEntry entry = new SidecarScopeFilterEntry(group, param, label, value, include);
+        return scopeFilters.contains(entry);
+    }
+
     /**
      * Execute an action on each entry in the scope filter.
+     *
      * @param lambda code to handle the scope filter entyr.
      */
     public void forEachScopeFilterEntry(Consumer<SidecarScopeFilterEntry> lambda) {
@@ -456,12 +554,20 @@ public class SidecarConfiguration {
         return point;
     }
 
-    public void forEachPreflightHeader(Consumer<ConfigSetting>c) {
+    boolean demandsPreflightHeader(String h, ConfigRequirement how) {
+        return preflightHeaders.contains(new ConfigSetting(h.toLowerCase(), how));
+    }
+
+    public void forEachPreflightHeader(Consumer<ConfigSetting> c) {
         preflightHeaders.forEach(c);
     }
 
     public Set<ConfigSetting> getRequestHeaders() {
         return requestHeaders;
+    }
+
+    public Map<String, Object> getPreflightParams() {
+        return preflightParams;
     }
 
     public Set<ConfigSetting> getPreflightHeaders() {
@@ -472,11 +578,49 @@ public class SidecarConfiguration {
         return preflightHeaders.size() > 0;
     }
 
-    public void setSidecarParams(Map<String, Object> sidecarParams) {
+    void setSidecarParams(Map<String, Object> sidecarParams) {
         this.sidecarParams = sidecarParams;
     }
 
-    public void setPreflightParams(Map<String, Object> preflightParams) {
+    void setPreflightParams(Map<String, Object> preflightParams) {
         this.preflightParams = preflightParams;
+    }
+
+    boolean needsNoExpansion() {
+        return inputExpansions.size() == 0;
+    }
+
+    /**
+     * Checks if the configuration demands preflight processing. The demand is stnading if pre-flight
+     * is explicitly enabled or either of the associated options is specified as non-null value.
+     *
+     * @return true if preflight class enabled explicitly or expansions are specified
+     */
+    public boolean demandsPreflightHandling() {
+        return preflightEnabled || preflightHeaders.size() > 0
+                || preflightParams.size() > 0
+                || preflightEAVs.size() > 0
+                || preflightPackageKeyEAVs.size() > 0
+                || preflightExpansions.size() > 0;
+    }
+
+    /**
+     * Checks whether the configuraiton actuall demands the application EAV with the specified requirement level.
+     * @param eav name of the EAV
+     * @param required requirement level
+     * @return <code>true</code> if the configuration requires this EAV with specified leve, false otherwise.
+     */
+    boolean demandsPreflightApplicationEAV(String eav, ConfigRequirement required) {
+        return preflightEAVs.contains(new ConfigSetting(eav, required));
+    }
+
+    /**
+     * Checks whether the configuration actually demands specified EAV with the specified level
+     * @param eav EAV
+     * @param reqLevel requirement level
+     * @return true if specified with this level, false otherwise.
+     */
+    boolean demandsPreflightPackageKeyEAV(String eav, ConfigRequirement reqLevel) {
+        return preflightPackageKeyEAVs.contains(new ConfigSetting(eav, reqLevel));
     }
 }

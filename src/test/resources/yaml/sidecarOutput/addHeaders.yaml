@@ -1,0 +1,11 @@
+addHeaders:
+  # No effect
+---
+addHeaders:
+  a: B
+  b: C
+---
+addHeaders:
+  a: B
+  b: 345
+  # Wrong type; will be ignored.

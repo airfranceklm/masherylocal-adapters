@@ -1,0 +1,36 @@
+request-headers:
+# No effect
+---
+request-headers:
+  require:
+  include:
+  # No effect
+---
+request-headers:
+  require:
+    - x-afklm-h1
+    - x-AFKLM-h2
+  include:
+---
+request-headers:
+  require:
+    - x-afklm-h1
+    - 45
+    # This is not the correct format, will have no effect.
+  include:
+---
+request-headers:
+  require:
+  # No effect
+  include:
+    - x-afklm-h1
+    - x-AFKLM-h2
+---
+request-headers:
+  require:
+  # No effect
+  include:
+    - x-afklm-h1
+    - 45
+    # Will have no effect: contains number
+---

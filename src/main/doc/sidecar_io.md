@@ -185,8 +185,7 @@ data elements it actually needs. The sidecars can receive information about:
 - Remote address of the API client
 - Token information
 - EAVs of the package key or of the application
-
-// TODO This need be 
+- Payload sent by an API client / returned to the API client.
 
 ### Technical limitations about expanding post-processor inputs
 
@@ -273,7 +272,7 @@ Nevertheless, some applications (e.g. security logging) may find this parameter 
 particular lambda, then it will be filled with the Mashery-known IP address:
 ```json
 {
-  "remoteAddr": "123.456.789.012"
+  "remoteAddress": "123.456.789.012"
 }
 ```
 
@@ -286,6 +285,7 @@ attach the significance ot the grant type.
 ```json
 {
   "token": {
+    "bearerToken": "aBearerTokenActuallyUsed",
     "scope": "a-scope",
     "userContext": "aUserContext",
     "expires": "2020-01-01T13:39:45Z",
@@ -293,12 +293,12 @@ attach the significance ot the grant type.
   }
 }
 ```
-> TODO: extract the values for the grant type which Mashery is reporting.
+
 ### Routing
 Routing information gives the HTTP verb and the URI of the back-end, to which it will be sent. This information may
 be interested to the functions that aim optimizing the traffic to the back-ends which are overused. 
 
-A typical busines scenario could be that an application is not generating enough conversions while using a back-end that incurs a
+A typical business scenario could be that an application is not generating enough conversions while using a back-end that incurs a
 very high running costs for AFKLM. sidecars could do several things with this information:
 - implement selective caching for named application keys;
 - override changeRoute information for the specific request, e.g. re-route the client request to the back-end having
@@ -307,7 +307,7 @@ very high running costs for AFKLM. sidecars could do several things with this in
 
 ```json
 {
-  "changeRoute": {
+  "routing": {
     "uri": "https://the-backend-uri",
     "httpVerb": "POST"
   }
@@ -394,28 +394,80 @@ compression schemes that are not necessarily known to the processor. Or, the cli
 a protocol that will use specially composed JSON-like structures that cannot be correctly parsed by the
 default JSON parser.
 
+The following presents the fields that will be filled in when a payload is extracted:
+
 ```json
 {
   "request": {
-    "payload": "a payload string"
+    "payloadBase64Encoded": false,
+    "payload": "a payload string",
+    "payloadLength": 345
+  }
+}
+```
+or, in case of post-processor, it would be listed under the `response` field.
+ 
+```json
+{
+  "response": {
+    "payloadBase64Encoded": false,
+    "payload": "a payload string",
+    "payloadLength": 345
   }
 }
 ```
 
-If the API client has applied a compression algorithm, e.g. gzip, then the content of the `payload` field
-will be the gzipped body as received by Mashery. For this matter, the labmda function needs to ensure that 
-it receives the `content-type` and `content-encoding` headers.
+These fields are:
+- `payloadLength`: the length of the payload. If no payload was transmitted (e.g. for GET request for a pre-procesor
+   extraction), it will be sent to zero;
+- `payload`: the payload string of what Mashery gateway has received, and
+- `payloadBase64Encoded`: whether this payload is Base-64 encoded from the original stream processed by Mashery.
+
+> At the point of building the input message, no compression is applied on the actual bodies themselves. It is expected
+> that the communication stack will apply necessary compression transparently from Mashery gateway. Trying to compress
+> data at this stage might lead, thus, to higher CPU use.  
+
+The payload will be Base-64 encoded when the process will not be able to establish that the payload being extracted
+is a text string. In order to qualify that the payload is actually text, an HTTP message must meet the following
+conditions:
+- the `content-type` header must be set to either of the following:
+    - `text/plain`, or any starts with `text/`, e.g. `text/css`;
+    - `application/vnd.api+json`
+    - start with `application/json` (including all flavours, e.g. `application/json+hal`)
+    - starts with `application/javascript`
+    - `application/ld+json`
+    - `application/yaml`
+    - `application/x-www-form-urlencoded`
+    - starts with `application/xml`
+    - starts with `application/xhtml`
+    - starts with `application/graphql`;
+- The content ttype should be in a charset that Mashery Java VM is able to understand. Charsets UTF-8 and ASCII are supported;
+- There are **no** `content-encoding`, `transfer-encoding` and `content-transfer-encoding` headers set.
+
+The motivation for such design decision is that the client or API origin may apply an incorrect combination of these headers.
+E.g., an API client can set `content-encoding: gzip` without sending actually compressed entity. Processing the payload
+according to headers may yield unexpected results that will be difficult to narrow down between four members of the chain
+(api client, sidecar processor, sidecar itself, and API origin).
+
+This decision removed the sidecar processor from a party that performs the transcoding incorrectly.
+
+Where the payload extraction did take place, but no payload was present, then only `payloadLength` will be set to `0` 
+as the following example illustrates.
 ```json
 {
   "request": {
-    "headers": {
-      "content-type": "text",
-      "content-encoding": "gzip"
-    },
-    "payload": "H4sIAAA2aF0AA3N0JAo4IQFnZOCCBlzRgBsWAABKYxehdAAAAA=="
+    "payloadLength": 0
   }
 }
 ```
+
+> Note: the request element is filled only when contains meaningful data. If the combination of the configuration
+> and actual request is that:
+> - there are no headers to send, and
+> - there is no payload to be included,
+>
+> then the `request` element (or `response`) will be fully omitted in the input structure. The code of the sidecar should
+> check for the presence of the element before trying reading it's properties.
 
 # Sidecar outputs
 The output of the sidecar is only meaningful if the function is invoked in the

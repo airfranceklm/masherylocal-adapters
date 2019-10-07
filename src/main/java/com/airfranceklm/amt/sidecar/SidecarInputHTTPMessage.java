@@ -14,6 +14,7 @@ public class SidecarInputHTTPMessage {
     private Map<String, String> headers;
     private long payloadLength;
     private String payload;
+    private boolean payloadBase64Encoded;
 
     public Map<String, String> getHeaders() {
         return headers;
@@ -59,6 +60,14 @@ public class SidecarInputHTTPMessage {
         this.payloadLength = payloadLength;
     }
 
+    public boolean isPayloadBase64Encoded() {
+        return payloadBase64Encoded;
+    }
+
+    public void setPayloadBase64Encoded(boolean payloadBase64Encoded) {
+        this.payloadBase64Encoded = payloadBase64Encoded;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -66,13 +75,16 @@ public class SidecarInputHTTPMessage {
         SidecarInputHTTPMessage that = (SidecarInputHTTPMessage) o;
         return payloadLength == that.payloadLength &&
                 Objects.equals(headers, that.headers) &&
-                Objects.equals(payload, that.payload);
+                Objects.equals(payload, that.payload) &&
+                Objects.equals(payloadBase64Encoded, that.payloadBase64Encoded);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, payloadLength, payload);
+        return Objects.hash(headers, payloadLength, payload, payloadBase64Encoded);
     }
+
+
 
     @Override
     public String toString() {
@@ -80,6 +92,7 @@ public class SidecarInputHTTPMessage {
                 "headers=" + SidecarInput.mapToString(headers) +
                 ", payloadLength=" + payloadLength +
                 ", payload='" + payload + '\'' +
+                ", base64Encoded='" + payloadBase64Encoded + '\'' +
                 '}';
     }
 }

@@ -38,11 +38,13 @@ XTE Logging:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PostProcessor
           packageKey: dfgf
@@ -61,6 +63,7 @@ XTE Logging:
             code: 201
             headers:
               ra: RB
+              content-type: text/plain
             payload: ==PAYLOAD==
 
         output:
@@ -89,11 +92,13 @@ XTE Logging:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PostProcessor
           packageKey: dfgf
@@ -112,6 +117,7 @@ XTE Logging:
             code: 201
             headers:
               ra: RB
+              content-type: text/plain
             payload: ==PAYLOAD==
 
         output:
@@ -147,11 +153,13 @@ XTE Logging:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PostProcessor
           packageKey: dfgf
@@ -170,6 +178,7 @@ XTE Logging:
             code: 201
             headers:
               ra: RB
+              content-type: text/plain
             payload: ==PAYLOAD==
 
         throw error: Unexpected return code

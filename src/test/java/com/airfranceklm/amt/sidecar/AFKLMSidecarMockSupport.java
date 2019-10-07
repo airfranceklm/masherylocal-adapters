@@ -2,17 +2,12 @@ package com.airfranceklm.amt.sidecar;
 
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;
-import com.airfranceklm.amt.testsupport.RequestCaseYAMLReader;
 import com.airfranceklm.amt.testsupport.RequestMockSupport;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
 
-import static com.airfranceklm.amt.sidecar.config.YamlConfigurationBuilder.*;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;

@@ -1,5 +1,7 @@
 package com.airfranceklm.amt.sidecar.config;
 
+import java.util.Objects;
+
 public class SidecarScopeFilterEntry {
     private boolean inclusive = true;
     private String group;
@@ -41,5 +43,22 @@ public class SidecarScopeFilterEntry {
 
     public String getValue() {
         return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SidecarScopeFilterEntry that = (SidecarScopeFilterEntry) o;
+        return inclusive == that.inclusive &&
+                Objects.equals(group, that.group) &&
+                Objects.equals(param, that.param) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(inclusive, group, param, label, value);
     }
 }

@@ -4,12 +4,12 @@ import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.airfranceklm.amt.sidecar.config.SidecarInputPoint;
 import com.airfranceklm.amt.sidecar.input.SidecarInputBuilder;
 import com.airfranceklm.amt.sidecar.input.SidecarInputBuilderImpl;
-import com.airfranceklm.amt.sidecar.input.SidecarRuntimeCompiler;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.ProcessorEvent;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Store of pre-compiled builders that will be actually producing the sidecar.
@@ -40,19 +40,19 @@ public interface SidecarConfigurationStore {
     SidecarInputBuilder<PreProcessEvent> getPreflightInputBuilder(SidecarConfiguration cfg);
 
 
+    Set<MasheryPreprocessorPointReference> getDeclaredIn(String file);
+
     /**
      * Notification from the local files watcher service that will notify the store where a local configuration has changed
-     * @param serviceId Id of the Mashery service
-     * @param endpointID Id of the endpoint service
+     * @param endpRef reference to the Mashery endpoint
+     * @param declaredInFile path of the file where this configuration is declared.
      * @param cfg Configuration object.
      */
-    void acceptConfigurationChange(String serviceId, String endpointID, SidecarConfiguration cfg);
+    void acceptConfigurationChange(MasheryPreprocessorPointReference endpRef, String declaredInFile, SidecarConfiguration cfg);
 
     /**
      * Notification from the local files watcher service that the local configuration for this endpoint has been removed.
-     * @param serviceId ID of the service
-     * @param endpointID Mashery ID of the endpoint.
-     * @param point point
+     * @param ref reference to Mashery endpoint
      */
-    void forget(String serviceId, String endpointID, SidecarInputPoint point);
+    void forget(MasheryPreprocessorPointReference ref);
 }

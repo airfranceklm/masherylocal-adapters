@@ -54,7 +54,7 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
                 .withFunctionName(lambdaCfg.getFunctionARN())
                 .withInvocationType(type)
                 .withPayload(AFKLMSidecarProcessor.toJSON(input))
-                .withSdkRequestTimeout(lambdaCfg.getTimeout());
+                .withSdkRequestTimeout((int)lambdaCfg.getTimeout());
 
         InvokeResult result = null;
         try {
@@ -175,12 +175,12 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
         String awsKey;
         String awsSecret;
         String awsRegion;
-        int timeout;
+        long timeout;
 
         int proxyPort = -1;
         String proxyHost;
 
-        AWSLambdaConfiguration(Map<String, String> params, int timeout) {
+        AWSLambdaConfiguration(Map<String, String> params, long timeout) {
             functionARN = params.get(CFG_FUNCTION_ARN);
             awsKey = params.get(CFG_AWS_KEY);
             awsSecret = params.get(CFG_AWS_SECRET);
@@ -225,7 +225,7 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
             return awsRegion;
         }
 
-        int getTimeout() {
+        long getTimeout() {
             return timeout;
         }
     }

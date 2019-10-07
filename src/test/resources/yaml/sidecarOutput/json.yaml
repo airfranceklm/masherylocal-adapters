@@ -1,0 +1,7 @@
+json:
+  # No effect
+---
+json:
+  a: string
+  b: 32
+  c: false

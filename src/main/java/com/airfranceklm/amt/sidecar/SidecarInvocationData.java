@@ -10,13 +10,17 @@ import java.io.Serializable;
  * A command object used to carry
  */
 public class SidecarInvocationData {
+
     private SidecarInput input;
     private AFKLMSidecarStack stack;
     private AFKLMSidecarStack.AFKLMSidecarStackConfiguration stackConfiguration;
+
     private String serviceId;
     private String endpointId;
     private boolean idempotentAware;
+
     private Cache cache;
+
     private DebugContext debugCtx;
 
     public SidecarInvocationData(SidecarInput input,

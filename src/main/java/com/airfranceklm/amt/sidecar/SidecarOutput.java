@@ -1,7 +1,5 @@
 package com.airfranceklm.amt.sidecar;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,7 +13,7 @@ public interface SidecarOutput extends Serializable  {
 
     String getPayload();
 
-    JsonNode getJson();
+    Map<String,?> getJSONPayload();
 
     Integer getCode();
 
@@ -27,7 +25,7 @@ public interface SidecarOutput extends Serializable  {
 
     String getMessage();
 
-    Map<String, Object> getRelayParameters();
+    Map<String, ?> getRelayParams();
 
     HashMap<String, Object> createSerializeableRelayParameters();
 

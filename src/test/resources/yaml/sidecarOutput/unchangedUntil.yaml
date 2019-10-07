@@ -1,0 +1,13 @@
+unchangedUntil:
+  # No effect
+---
+unchangedUntil: 301
+  # Wrong type; will be ignored.
+---
+unchangedUntil: "2019-10-06T17:46:03.356Z"
+---
+unchangedUntil: "2020-11-07T18:56:04Z"
+---
+unchangedUntil: "Unexpected date format"
+---
+unchangedUntil: "2021-02-03T12:36:34-0300"

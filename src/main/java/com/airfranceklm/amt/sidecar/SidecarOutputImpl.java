@@ -1,6 +1,6 @@
 package com.airfranceklm.amt.sidecar;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.TreeNode;
 
 import java.util.*;
 
@@ -17,10 +17,10 @@ public class SidecarOutputImpl implements SidecarOutput {
      */
     private Date unchangedUntil;
     private SidecarOutputRouting changeRoute;
-    private Map<String, Object> relayParameters;
+    private Map<String, ?> relayParams;
+    private Map<String, ?> jsonPayload;
 
     private String payload;
-    private JsonNode json;
     private Integer code;
     private String message;
 
@@ -56,15 +56,6 @@ public class SidecarOutputImpl implements SidecarOutput {
 
     public void setPayload(String payload) {
         this.payload = payload;
-    }
-
-    @Override
-    public JsonNode getJson() {
-        return json;
-    }
-
-    public void setJson(JsonNode json) {
-        this.json = json;
     }
 
     void addHeader(String h, String v) {
@@ -106,6 +97,14 @@ public class SidecarOutputImpl implements SidecarOutput {
         return addsHeader("content-type");
     };
 
+    public Map<String, ?> getJSONPayload() {
+        return jsonPayload;
+    }
+
+    public void setJSONPayload(Map<String, ?> jsonPayload) {
+        this.jsonPayload = jsonPayload;
+    }
+
     boolean addsHeader(String str) {
         if (addHeaders != null) {
             for (String s : addHeaders.keySet()) {
@@ -128,28 +127,28 @@ public class SidecarOutputImpl implements SidecarOutput {
     }
 
     @Override
-    public Map<String, Object> getRelayParameters() {
-        return relayParameters;
+    public Map<String, ?> getRelayParams() {
+        return relayParams;
     }
 
     @Override
     public HashMap<String, Object> createSerializeableRelayParameters() {
-        if (relayParameters == null) {
+        if (relayParams == null) {
             return null;
         }
 
-        HashMap<String, Object> retVal = new HashMap<>(relayParameters.size());
-        retVal.putAll(relayParameters);
+        HashMap<String, Object> retVal = new HashMap<>(relayParams.size());
+        retVal.putAll(relayParams);
 
         return retVal;
     }
 
-    public void setRelayParameters(Map<String, Object> relayParameters) {
-        this.relayParameters = relayParameters;
+    public void setRelayParams(Map<String, ?> relayParams) {
+        this.relayParams = relayParams;
     }
 
     @Override
     public boolean relaysMessageToPostprocessor() {
-        return relayParameters != null && relayParameters.size()>0;
+        return relayParams != null && relayParams.size()>0;
     }
 }

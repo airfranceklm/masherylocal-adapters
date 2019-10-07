@@ -1,0 +1,17 @@
+response-headers:
+  # No effect
+---
+response-headers:
+  skip:
+    # No effect
+---
+response-headers:
+  skip:
+    - x-afklm-h1
+---
+response-headers:
+  skip:
+    - x-afklm-h1
+    - 45
+    # Will have no effect: contains number
+---

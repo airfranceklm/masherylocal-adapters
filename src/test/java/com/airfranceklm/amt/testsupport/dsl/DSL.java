@@ -115,53 +115,60 @@ public abstract class DSL<T extends RequestCase> implements Cloneable {
     //--------------------------------------------------------------------------
     // Configure endpoint
 
-    public void configureEndpointData(Consumer<EndpointConfigurationDSL> c) {
+    public DSL<T> configureEndpointData(Consumer<EndpointConfigurationDSL> c) {
         if (endpointDataConfigurers == null) {
             endpointDataConfigurers = new ArrayList<>();
         }
         endpointDataConfigurers.add(c);
+        return this;
     }
 
-    public void configureAPIClientRequest(Consumer<APIClientRequestDSL> c) {
+    public DSL<T> configureAPIClientRequest(Consumer<APIClientRequestDSL> c) {
         if (apiClientRequestConfigurers == null) {
             apiClientRequestConfigurers = new ArrayList<>();
         }
         apiClientRequestConfigurers.add(c);
+        return this;
     }
 
-    public void configurePackageKey(Consumer<PackageKeyDSL> c) {
+    public DSL<T> configurePackageKey(Consumer<PackageKeyDSL> c) {
         if (packageKeyConfigurers == null) {
             packageKeyConfigurers = new ArrayList<>();
         }
         packageKeyConfigurers.add(c);
+        return this;
     }
 
-    public void configureAuthorizationContext(Consumer<AuthorizationContextDataDSL> c) {
+    public DSL<T> configureAuthorizationContext(Consumer<AuthorizationContextDataDSL> c) {
         if (authorizationContextConfigurers == null) {
             authorizationContextConfigurers = new ArrayList<>();
         }
         authorizationContextConfigurers.add(c);
+        return this;
     }
 
-    public void configureAPIOriginRequest(Consumer<APIOriginRequestDSL> c) {
+    public DSL<T> configureAPIOriginRequest(Consumer<APIOriginRequestDSL> c) {
         if (apiOriginRequestConfigurers == null) {
             apiOriginRequestConfigurers = new ArrayList<>();
         }
         apiOriginRequestConfigurers.add(c);
+        return this;
     }
 
-    public void configureAPIOriginResponse(Consumer<APIOriginResponseDSL> c) {
+    public DSL<T> configureAPIOriginResponse(Consumer<APIOriginResponseDSL> c) {
         if (apiOriginResponseConfigurers == null) {
             apiOriginResponseConfigurers = new ArrayList<>();
         }
         apiOriginResponseConfigurers.add(c);
+        return this;
     }
 
-    public void configureTrafficManager(Consumer<TrafficManagerResponseDSL> c) {
+    public DSL<T> configureTrafficManager(Consumer<TrafficManagerResponseDSL> c) {
         if (trafficManagerResponseConfigurers == null) {
             trafficManagerResponseConfigurers = new ArrayList<>();
         }
         trafficManagerResponseConfigurers.add(c);
+        return this;
     }
 
     /**
@@ -170,8 +177,8 @@ public abstract class DSL<T extends RequestCase> implements Cloneable {
      * @param code    code to use
      * @param message message to be rendered to the user.
      */
-    public void expectCurtailingWith(int code, String message) {
-        configureTrafficManager(cl -> {
+    public DSL<T> expectCurtailingWith(int code, String message) {
+        return configureTrafficManager(cl -> {
             cl.expectStatusCode(code)
                     .expectHeader("content-type", "application/xml")
                     .expectResponsePayload(formatCurtailedMessage(message))

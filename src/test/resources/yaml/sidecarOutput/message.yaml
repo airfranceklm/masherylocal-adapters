@@ -1,0 +1,7 @@
+message:
+  # No effect
+---
+message: 301
+  # Wrong type; will be ignored.
+---
+message: "Error"

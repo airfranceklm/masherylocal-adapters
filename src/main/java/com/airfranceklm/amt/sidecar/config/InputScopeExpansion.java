@@ -10,10 +10,21 @@ package com.airfranceklm.amt.sidecar.config;
  * </ul>
  */
 public enum InputScopeExpansion {
-    ApplicationEAVs, PackageKeyEAVS, Token, FullToken, GrantType, RequestHeaders, AllRequestHeaders, TokenScope,
-    ResponseHeaders, AllResponseHeaders,
-    RequestPayload, ResponsePayload,
-    Operation, RemoteAddress, Routing,
+    RemoteAddress,
+    ApplicationEAVs,
+    PackageKeyEAVS,
+    GrantType,
+    TokenScope,
+    Token,
+    FullToken,
     RequestVerb,
-    RelayParams
+    Operation,
+    RequestHeaders,
+    AllRequestHeaders,
+    RequestPayload,
+    Routing,
+    RelayParams,
+    ResponseHeaders,
+    AllResponseHeaders,
+    ResponsePayload
 }

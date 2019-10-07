@@ -1,0 +1,61 @@
+preflight:
+  expand-input:
+    # No effect
+---
+preflight:
+  expand-input:
+    - remoteAddress
+
+---
+preflight:
+  expand-input:
+    - grantType
+---
+preflight:
+  expand-input:
+    - tokenScope
+---
+preflight:
+  expand-input:
+    - token
+---
+preflight:
+  expand-input:
+    - +Token
+---
+preflight:
+  expand-input:
+    - verb
+---
+preflight:
+  expand-input:
+    - operation
+    # Unsupported
+---
+preflight:
+  expand-input:
+    - +requestHeaders
+---
+preflight:
+  expand-input:
+    - requestPayload
+    # Not supported
+---
+preflight:
+  expand-input:
+    - routing
+---
+preflight:
+  expand-input:
+    - relayParams
+    # Not supported
+---
+preflight:
+  expand-input:
+    - +responseHeaders
+    # Not possible
+---
+preflight:
+  expand-input:
+    - responsePayload
+    # Not possible

@@ -59,12 +59,13 @@ public class HTTPSidecarStack implements AFKLMSidecarStack {
         CloseableHttpResponse resp = httpClient.execute(httpPost);
 
         final int statusCode = resp.getStatusLine().getStatusCode();
-        if (statusCode != 200) {
-            throw new IOException(String.format("Server %s returned unexpected code %d", htCfg.getUri(), statusCode));
+        if (statusCode == 200) {
+            return AFKLMSidecarProcessor.toSidecarOutput(resp.getEntity().getContent(), StandardCharsets.UTF_8);
+
         } else if (statusCode == 202) {
             return emptyResponse;
         } else {
-            return AFKLMSidecarProcessor.toSidecarOutput(resp.getEntity().getContent(), StandardCharsets.UTF_8);
+            throw new IOException(String.format("Server %s returned unexpected code %d", htCfg.getUri(), statusCode));
         }
     }
 

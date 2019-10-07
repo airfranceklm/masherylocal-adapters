@@ -30,6 +30,7 @@ import java.util.function.BiConsumer;
 public abstract class SidecarInputBuilderImpl<T extends ProcessorEvent> implements SidecarInputBuilder<T> {
 
     private static final Logger log = LoggerFactory.getLogger(AFKLMSidecarProcessor.class);
+    static final String MASH_MSG_ID_HEADER = "X-Mashery-Message-ID";
 
     private SidecarConfiguration cfg;
 
@@ -368,6 +369,8 @@ public abstract class SidecarInputBuilderImpl<T extends ProcessorEvent> implemen
 
         expandKeyServiceParams(ppe, input);
     }
+
+
 
     /**
      * Sets the point to be pre-flight and synchronicity to request-response.

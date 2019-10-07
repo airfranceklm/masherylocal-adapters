@@ -1,9 +1,9 @@
 package com.airfranceklm.amt.testsupport;
 
-import com.airfranceklm.amt.testsupport.dsl.APIOriginResponseDSL;
 import org.easymock.IAnswer;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -43,9 +43,31 @@ public class RequestCase {
             @Override
             public Long answer() throws Throwable {
                 if (apiClientRequest == null) return 0L;
-                else return apiClientRequest.payloadLength;
+                if (apiClientRequest.payload != null) {
+                    return (long) apiClientRequest.payload.length();
+                } else if (apiClientRequest.payloadOwner != null && apiClientRequest.payloadResource != null) {
+
+                    return getStreamLength(apiClientRequest.payloadOwner, apiClientRequest.payloadResource);
+                } else {
+                    return 0L;
+                }
             }
         };
+    }
+
+    private Long getStreamLength(Class resourceOwner, String resourceName) throws IOException {
+        long length = 0;
+        try (InputStream is = resourceOwner.getResourceAsStream(resourceName)) {
+            if (is != null) {
+                byte[] buf = new byte[10240];
+                int k = 0;
+                while ((k = is.read(buf)) > 0) {
+                    length += k;
+                }
+            }
+
+            return length;
+        }
     }
 
     IAnswer<Long> getAPIOriginResponseContentLength() {
@@ -53,7 +75,13 @@ public class RequestCase {
             @Override
             public Long answer() throws Throwable {
                 if (apiOriginResponse == null) return 0L;
-                else return apiOriginResponse.bodyLength;
+                else if (apiOriginResponse.payload != null) {
+                    return apiOriginResponse.payloadLength;
+                } else if (apiOriginResponse.payloadOwner != null && apiOriginResponse.payloadResource != null) {
+                    return getStreamLength(apiOriginResponse.payloadOwner, apiOriginResponse.payloadResource);
+                } else {
+                    return 0L;
+                }
             }
         };
     }
@@ -66,6 +94,8 @@ public class RequestCase {
                     return null;
                 } else if (apiClientRequest.payload != null) {
                     return new ByteArrayInputStream(apiClientRequest.payload.getBytes(StandardCharsets.UTF_8));
+                } else if (apiClientRequest.payloadOwner != null && apiClientRequest.payloadResource != null) {
+                    return apiClientRequest.payloadOwner.getResourceAsStream(apiClientRequest.payloadResource);
                 } else {
                     return null;
                 }
@@ -79,8 +109,10 @@ public class RequestCase {
             public InputStream answer() throws Throwable {
                 if (apiOriginResponse == null) {
                     return null;
-                } else if (apiOriginResponse.body != null) {
-                    return new ByteArrayInputStream(apiOriginResponse.body.getBytes(StandardCharsets.UTF_8));
+                } else if (apiOriginResponse.payload != null) {
+                    return new ByteArrayInputStream(apiOriginResponse.payload.getBytes(StandardCharsets.UTF_8));
+                } else if (apiOriginResponse.payloadOwner != null && apiOriginResponse.payloadResource != null) {
+                    return apiOriginResponse.payloadOwner.getResourceAsStream(apiOriginResponse.payloadResource);
                 } else {
                     return null;
                 }
@@ -89,11 +121,13 @@ public class RequestCase {
     }
 
     boolean hasClientRequestBody() {
-        return apiClientRequest != null && apiClientRequest.payload != null;
+        return (apiClientRequest != null && (apiClientRequest.payload != null
+                || (apiClientRequest.payloadOwner != null && apiClientRequest.payloadResource != null)));
     }
 
     boolean hasClientResponseBody() {
-        return apiOriginResponse != null && apiOriginResponse.body != null;
+        return apiOriginResponse != null &&
+                (apiOriginResponse.payload != null || (apiOriginResponse.payloadOwner != null && apiOriginResponse.payloadResource != null));
     }
 
     public TestScenario getTestScenario() {
@@ -167,7 +201,8 @@ public class RequestCase {
 
     /**
      * De-references a case.
-     * @param elem data structure element
+     *
+     * @param elem        data structure element
      * @param anotherName name of another case.
      * @return instnace of a request case. If not found, then {@link IllegalStateException} is thrown to indicate
      * a broken reference.
@@ -188,27 +223,27 @@ public class RequestCase {
         return apiOriginRequest;
     }
 
-    void buildAPIClientRequestFromYaml(Map<String,Object> yaml) {
+    void buildAPIClientRequestFromYaml(Map<String, Object> yaml) {
         this.apiClientRequest = new APIClientRequest(yaml);
     }
 
-    void buildAuthorizationContextFromYaml(Map<String,Object> yaml) {
+    void buildAuthorizationContextFromYaml(Map<String, Object> yaml) {
         this.authorizationContext = new AuthorizationContextData(yaml);
     }
 
-    void buildAPIOriginResponseFromYaml(Map<String,Object> yaml) {
+    void buildAPIOriginResponseFromYaml(Map<String, Object> yaml) {
         this.apiOriginResponse = new APIOriginResponse(yaml);
     }
 
-    void buildPackageKeyFromYaml(Map<String,Object> yaml) {
+    void buildPackageKeyFromYaml(Map<String, Object> yaml) {
         this.packageKeyData = new PackageKeyData(yaml);
     }
 
-    void buildTrafficManagerExpectationFromYaml(Map<String,Object> yaml) {
+    void buildTrafficManagerExpectationFromYaml(Map<String, Object> yaml) {
         this.trafficManagerResponse = new TrafficManagerResponseData(yaml);
     }
 
-    void buildExpectedHTTPResponseFromYaml(Map<String,Object> yaml) {
+    void buildExpectedHTTPResponseFromYaml(Map<String, Object> yaml) {
         this.httpServerResponseData = new HTTPServerResponseData(yaml);
     }
 

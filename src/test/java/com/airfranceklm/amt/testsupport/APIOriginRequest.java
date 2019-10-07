@@ -1,6 +1,5 @@
 package com.airfranceklm.amt.testsupport;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

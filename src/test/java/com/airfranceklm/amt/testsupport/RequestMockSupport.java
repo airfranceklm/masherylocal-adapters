@@ -46,6 +46,10 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
         return new TestContext(rc);
     }
 
+    protected PreProcessEvent createPreProcessorMock(T rc) {
+        return createPreProcessorMock(createTestContextFrom(rc));
+    }
+
     /**
      * Create a mock for the pre-processor
      *
@@ -77,6 +81,9 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
         return ppe;
     }
 
+    protected PostProcessEvent createPostProcessorMock(T rc) {
+        return createPostProcessorMock(createTestContextFrom(rc));
+    }
 
     protected PostProcessEvent createPostProcessorMock(TestContext tc) {
         assertNotNull(tc);
@@ -313,9 +320,14 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
             }
             expect(callMock.getRequest()).andReturn(appReqMock).anyTimes();
 
+            TrafficManagerResponse mockTrafficMgrResponse = createMock(TrafficManagerResponse.class);
+            HTTPServerResponse respMock = createMock(HTTPServerResponse.class);
+            MutableHTTPHeaders tmHeadersMock = createMock(MutableHTTPHeaders.class);
+
+            expect(tmHeadersMock.get("X-Mashery-Message-ID")).andReturn("unit-test-call-uuid").anyTimes();
+
             // Traffic manager interactions -- if expected.
             if (rc.trafficManagerResponse != null) {
-                TrafficManagerResponse mockTrafficMgrResponse = createMock(TrafficManagerResponse.class);
                 if (rc.trafficManagerResponse.expectSetComplete != null) {
                     mockTrafficMgrResponse.setComplete();
                     expectLastCall().once();
@@ -331,7 +343,7 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
                 }
 
                 if (rc.trafficManagerResponse.modifiesHTTPServerResponse()) {
-                    HTTPServerResponse respMock = createMock(HTTPServerResponse.class);
+
                     if (rc.trafficManagerResponse.expectStatusCode != null) {
                         respMock.setStatusCode(rc.trafficManagerResponse.expectStatusCode.intValue());
                         expectLastCall().once();
@@ -346,21 +358,17 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
                     }
 
                     if (rc.trafficManagerResponse.responseHeaders != null) {
-                        MutableHTTPHeaders tmHeadersMock = createMock(MutableHTTPHeaders.class);
-
                         rc.trafficManagerResponse.responseHeaders.forEach((key, value) -> {
                             tmHeadersMock.set(key, value);
                             expectLastCall().once();
                         });
-
-                        expect(respMock.getHeaders()).andReturn(tmHeadersMock).anyTimes();
                     }
-
-                    expect(mockTrafficMgrResponse.getHTTPResponse()).andReturn(respMock).anyTimes();
                 }
-
-                expect(callMock.getResponse()).andReturn(mockTrafficMgrResponse).anyTimes();
             }
+
+            expect(respMock.getHeaders()).andReturn(tmHeadersMock).anyTimes();
+            expect(mockTrafficMgrResponse.getHTTPResponse()).andReturn(respMock).anyTimes();
+            expect(callMock.getResponse()).andReturn(mockTrafficMgrResponse).anyTimes();
 
             return callMock;
 

@@ -47,6 +47,7 @@ Dynamic endpoint authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -88,6 +89,7 @@ Dynamic endpoint authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf
@@ -129,6 +131,7 @@ Dynamic endpoint authorization:
 
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PreProcessor
           packageKey: dfgf

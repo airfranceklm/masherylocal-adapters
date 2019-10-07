@@ -37,6 +37,6 @@ public class LogStack implements AFKLMSidecarStack {
 
     @Override
     public AFKLMSidecarStackConfiguration configureFrom(SidecarConfiguration cfg) {
-        return null;
+        return new AlwaysValidConfiguration();
     }
 }

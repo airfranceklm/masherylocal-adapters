@@ -17,6 +17,9 @@ public class APIClientRequest extends RequestCaseDatum {
     long payloadLength;
     String payload;
 
+    Class payloadOwner;
+    String payloadResource;
+
     /**
      * Default constructor.
      */
@@ -133,5 +136,10 @@ public class APIClientRequest extends RequestCaseDatum {
 
     public String getPayload() {
         return payload;
+    }
+
+    public void setResourcePayload(Class owner, String resourceName) {
+        this.payloadOwner = owner;
+        this.payloadResource = resourceName;
     }
 }

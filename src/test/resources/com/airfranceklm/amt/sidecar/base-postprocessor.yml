@@ -25,6 +25,7 @@ Smoke Test:
         headers:
           A: B
           C: C1
+          Content-Type: text/lain
         payload: AAAA
         # RequestPayload can be for GET-type requests.
 
@@ -55,11 +56,13 @@ Smoke Test:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: RequestResponse
           point: PostProcessor
           # Response data wouldn't be included.
@@ -73,6 +76,7 @@ Smoke Test:
             code: 201
             headers:
               ra: RB
+              content-type: text/plain
             payload: ==PAYLOAD==
 
           packageKey: dfgf
@@ -104,6 +108,7 @@ Complete Offload Example:
         headers:
           A: B
           C: C1
+          Content-Type: text/plain
         payload: AAAA
         # RequestPayload can be for GET-type requests.
 
@@ -134,11 +139,13 @@ Complete Offload Example:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PostProcessor
           # Response data wouldn't be included.
@@ -146,12 +153,14 @@ Complete Offload Example:
             headers:
               a: B
               c: C1
+              content-type: text/plain
             payload: AAAA
 
           response:
             code: 201
             headers:
               ra: RB
+              content-type: text/plain
             payload: ==PAYLOAD==
 
           packageKey: dfgf

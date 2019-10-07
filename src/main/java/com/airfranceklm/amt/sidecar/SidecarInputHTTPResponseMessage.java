@@ -55,6 +55,7 @@ public class SidecarInputHTTPResponseMessage extends SidecarInputHTTPMessage {
                 ", " + reportJSONForToString() +
                 ", payloadLength=" + getPayloadLength() +
                 ", payload='" + getPayload() + '\'' +
+                ", base64Encoded='" + isPayloadBase64Encoded() + '\'' +
                 '}';
     }
 

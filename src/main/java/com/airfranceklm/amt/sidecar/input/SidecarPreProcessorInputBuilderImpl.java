@@ -46,6 +46,17 @@ public class SidecarPreProcessorInputBuilderImpl extends SidecarInputBuilderImpl
         addConditionAssertion(this::inspectMaxRequestBodySize);
     }
 
+    void expandMasheryMessageId(PreProcessEvent ppe, SidecarInput input) {
+        String messageId = ppe.getClientRequest().getHeaders().get(MASH_MSG_ID_HEADER);
+        if (messageId == null) {
+            messageId = ppe.getCallContext().getResponse().getHTTPResponse().getHeaders().get(MASH_MSG_ID_HEADER);
+        }
+
+        if (messageId != null) {
+            input.setMasheryMessageId(messageId);
+        }
+    }
+
     // --------------------------------------------------------
     // Pre-condition assertions
 
@@ -130,7 +141,10 @@ public class SidecarPreProcessorInputBuilderImpl extends SidecarInputBuilderImpl
     }
 
     void expandPreprocessToPayload(PreProcessEvent ppe, SidecarInput input) throws IOException {
-        addContentBody(ppe.getServerRequest().getBody(), input.getOrCreateRequest());
+        if (ppe.getServerRequest().getBody() != null) {
+            HTTPHeaders reqHeaders = ppe.getServerRequest().getHeaders();
+            addContentBody(reqHeaders, ppe.getServerRequest().getBody(), input.getOrCreateRequest());
+        }
     }
 
 

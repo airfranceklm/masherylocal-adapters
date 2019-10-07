@@ -1,0 +1,17 @@
+request-headers:
+  # No effect
+---
+request-headers:
+  skip:
+    # No effect
+---
+request-headers:
+  skip:
+    - x-afklm-h1
+---
+request-headers:
+  skip:
+    - x-afklm-h1
+    - 45
+    # Will have no effect: contains number
+---

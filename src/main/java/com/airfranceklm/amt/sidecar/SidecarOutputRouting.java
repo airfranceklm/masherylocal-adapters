@@ -10,13 +10,13 @@ public class SidecarOutputRouting {
     private String file;
     private String httpVerb;
     private String uri;
-    private int port = -1;
+    private Integer port;
 
-    public int getPort() {
+    public Integer getPort() {
         return port;
     }
 
-    public void setPort(int port) {
+    public void setPort(Integer port) {
         this.port = port;
     }
 
@@ -53,8 +53,11 @@ public class SidecarOutputRouting {
     }
 
 
-
-    public boolean overridesPartially() {
+    /**
+     * Returns true if routing seeks ot override host, file, or port of the outgoing URI.
+     * @return true if override is full or partial, false if the output URI doesn't need to change.
+     */
+    boolean outboundURINeedsChanging() {
         return this.host != null || this.file != null || this.port > 0;
     }
 
@@ -72,5 +75,9 @@ public class SidecarOutputRouting {
     @Override
     public int hashCode() {
         return Objects.hash(host, file, httpVerb, uri);
+    }
+
+    public boolean containsOnlyNulls() {
+        return host == null && file == null && httpVerb == null && uri == null && port == null;
     }
 }

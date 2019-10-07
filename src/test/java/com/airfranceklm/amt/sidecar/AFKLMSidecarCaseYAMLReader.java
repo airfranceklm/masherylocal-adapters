@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.util.Map;
 
 import static com.airfranceklm.amt.sidecar.config.YamlConfigurationBuilder.*;
-import static com.airfranceklm.amt.sidecar.config.YamlConfigurationBuilder.buildSidecarOutputFromYAML;
 import static org.junit.Assert.assertNotNull;
 
 public class AFKLMSidecarCaseYAMLReader extends RequestCaseYAMLReader<SidecarRequestCase> {

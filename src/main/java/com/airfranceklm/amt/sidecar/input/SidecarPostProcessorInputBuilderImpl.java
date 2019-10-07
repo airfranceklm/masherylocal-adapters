@@ -5,7 +5,10 @@ import com.airfranceklm.amt.sidecar.SidecarInputHTTPMessage;
 import com.airfranceklm.amt.sidecar.SidecarInputHTTPResponseMessage;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.mashery.http.HTTPHeaders;
+import com.mashery.http.client.HTTPClientResponse;
+import com.mashery.http.server.HTTPServerRequest;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
+import com.mashery.trafficmanager.model.core.ApplicationRequest;
 
 import java.io.IOException;
 
@@ -25,61 +28,22 @@ public class SidecarPostProcessorInputBuilderImpl extends SidecarInputBuilderImp
         return doAssertBodySize(SidecarRuntimeCompiler.getPostProcessorBodySize(ppe));
     }
 
-    void expandPostProcessToResponseHeaders(PostProcessEvent ppe,
-                                                    SidecarConfiguration cfg,
-                                                    SidecarInput input) {
-
-        HTTPHeaders apiRespHeaders = ppe.getClientResponse().getHeaders();
-        if (cfg.includeSpecificResponseHeaders()) {
-            cfg.forEachIncludedResponseHeader(h -> {
-                String hv = apiRespHeaders.get(h);
-                if (hv != null) {
-                    input.getRequest().addHeader(h.toLowerCase(), hv);
-                }
-            });
-        } else {
-            for (String header : apiRespHeaders) {
-                final String h = header.toLowerCase();
-                if (!cfg.skipsResponseHeader(h)) {
-                    input.getResponse().addHeader(h, apiRespHeaders.get(header));
-                }
-            }
-        }
-    }
-
-    void expandPostProcessorToRequestHeaders(PostProcessEvent ppe,
-                                                     SidecarConfiguration cfg,
-                                                     SidecarInput input) {
-        HTTPHeaders reqHeaders = ppe.getCallContext().getRequest().getHTTPRequest().getHeaders();
-        if (cfg.includesRequestHeaders()) {
-            cfg.forEachHeaderConfig(reqHeader -> {
-                String reqHeaderValue = reqHeaders.get(reqHeader.getToken());
-
-                if (reqHeaderValue != null) {
-                    input.getOrCreateRequest().addHeader(reqHeader.getToken(), reqHeaderValue);
-                }
-            });
-
-        } else {
-            for (String h : reqHeaders) {
-                String normalizedHeaderName = h.toLowerCase();
-
-                if (!cfg.skipsResponseHeader(normalizedHeaderName)) {
-                    input.getOrCreateRequest().addHeader(normalizedHeaderName, reqHeaders.get(h));
-                }
-            }
-        }
-    }
-
     void expandPostProcessorToResponsePayload(PostProcessEvent ppe,
                                                       SidecarInput input) throws IOException {
-        addContentBody(ppe.getClientResponse().getBody(), input.getResponse());
-    }
+        final HTTPClientResponse clResp = ppe.getClientResponse();
 
+        if (clResp.getBody() != null) {
+            HTTPHeaders h = clResp.getHeaders();
+            addContentBody(h, clResp.getBody(), input.getOrCreateResponse());
+        }
+    }
 
     void expandPostProcessorToRequestPayload(PostProcessEvent ppe,
                                                      SidecarInput input) throws IOException {
-        addContentBody(ppe.getCallContext().getRequest().getHTTPRequest().getBody(), input.getOrCreateRequest());
+        final ApplicationRequest clReq = ppe.getCallContext().getRequest();
+        if (clReq.getBody() != null) {
+            addContentBody(clReq.getHTTPRequest().getHeaders(), clReq.getBody(), input.getOrCreateRequest());
+        }
     }
 
     void expandRequestHeadersSkipping(PostProcessEvent ppe, SidecarInput input) {
@@ -121,6 +85,14 @@ public class SidecarPostProcessorInputBuilderImpl extends SidecarInputBuilderImp
             if (!getSidecarConfig().skipsResponseHeader(normalizedHeader)) {
                 msg.addHeader(normalizedHeader, reqHeaders.get(h));
             }
+        }
+    }
+
+    void expandMasheryMessageId(PostProcessEvent ppe, SidecarInput input) {
+        String messageId = ppe.getCallContext().getResponse().getHTTPResponse().getHeaders().get(MASH_MSG_ID_HEADER);
+
+        if (messageId != null) {
+            input.setMasheryMessageId(messageId);
         }
     }
 

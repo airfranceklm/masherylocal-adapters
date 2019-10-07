@@ -3,7 +3,7 @@ Asynchronous analytics:
     difference that it's invoked as an event and is fail-safe.
 
   use cases:
-    - Inspection of potentially confidential data being present in the reponses.
+    - Asynchronous analytics
 
   endpoint:
     service id: aServiceId
@@ -39,11 +39,13 @@ Asynchronous analytics:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==RESPONSE PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PostProcessor
           packageKey: dfgf
@@ -72,6 +74,7 @@ Asynchronous analytics:
         uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
         headers:
           Authorization: B
+          Content-Type: text/plain
         payload: == REQUEST PAYLOAD ==
 
       request to the api provider:
@@ -86,11 +89,13 @@ Asynchronous analytics:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==RESPONSE PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PostProcessor
           packageKey: dfgf
@@ -136,11 +141,13 @@ Asynchronous analytics:
         code: 201
         headers:
           RA: RB
+          Content-Type: text/plain
         payload: ==PAYLOAD==
 
       # This is what should be sent to lambda
       sidecar:
         input:
+          masheryMessageId: unit-test-call-uuid
           synchronicity: Event
           point: PostProcessor
           packageKey: dfgf

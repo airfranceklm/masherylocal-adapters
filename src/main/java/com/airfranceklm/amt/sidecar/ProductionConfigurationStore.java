@@ -8,21 +8,24 @@ import com.airfranceklm.amt.sidecar.input.SidecarRuntimeCompiler;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.ProcessorEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ProductionConfigurationStore implements SidecarConfigurationStore {
 
-    private Map<ConfigKey, SidecarConfigurationHolder> configurationStore = new HashMap<>();
+    public static Logger log = LoggerFactory.getLogger(ProductionConfigurationStore.class);
+
+    private Map<MasheryPreprocessorPointReference, SidecarConfigurationHolder> configurationStore = new HashMap<>();
     private MasheryConfigSidecarConfigurationBuilder mashBuilder = new MasheryConfigSidecarConfigurationBuilder();
 
     private long checkFrequency = TimeUnit.MINUTES.toMillis(1);
 
     private SidecarRuntimeCompiler compiler;
+    private final Object syncMon = new Object();
 
     ProductionConfigurationStore() {
     }
@@ -43,7 +46,7 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
             throw new IllegalArgumentException(String.format("Unsupported event class: %s", event.getClass().getName()));
         }
 
-        ConfigKey key = new ConfigKey(event.getEndpoint().getAPI().getExternalID(), event.getEndpoint().getExternalID(), point);
+        MasheryPreprocessorPointReference key = new MasheryPreprocessorPointReference(event, point);
         SidecarConfigurationHolder holder = configurationStore.get(key);
         if (holder != null) {
             // If the configuration is not reloadable by Mashery, don't check anything.
@@ -51,16 +54,15 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
                 return holder.sidecarConfig;
             }
 
-            if (holder.upToDate()) {
-                return holder.sidecarConfig;
-            } else {
-                synchronized (this) {
-                    return checkSidecarConfigurationUpToDate(holder, event);
+            if (!holder.upToDate()) {
+                synchronized (syncMon) {
+                    checkSidecarConfigurationUpToDate(holder, event);
                 }
             }
+            return holder.sidecarConfig;
         }
 
-        synchronized (this) {
+        synchronized (syncMon) {
             if (!configurationStore.containsKey(key)) {
                 holder = new SidecarConfigurationHolder();
                 holder.setConfiguration(mashBuilder.buildFrom(event));
@@ -76,28 +78,24 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
 
     }
 
-    private SidecarConfiguration checkSidecarConfigurationUpToDate(SidecarConfigurationHolder holder, ProcessorEvent ppe) {
-        // If the update was already done in a different thread, return.
-        if (holder.upToDate()) {
-            return holder.sidecarConfig;
-        }
-
+    private void checkSidecarConfigurationUpToDate(SidecarConfigurationHolder holder, ProcessorEvent ppe) {
+        //
         Map<String, String> params = getMasheryConfigurationFor(ppe, holder.sidecarConfig.getPoint());
 
         if (holder.originalConfiguration.equals(params)) {
             holder.checkTime.set(System.currentTimeMillis());
-            return holder.sidecarConfig;
+            return;
         }
 
         // Okay, we have a situation wherein the configuration has been changed from what was cached.
         holder.setConfiguration(mashBuilder.buildFrom(ppe));
         holder.checkTime.set(System.currentTimeMillis());
 
-        return holder.sidecarConfig;
+        holder.refreshBuilders();
     }
 
     private Map<String, String> getMasheryConfigurationFor(ProcessorEvent ppe, SidecarInputPoint point) {
-        Map<String,String> params = null;
+        Map<String, String> params = null;
         if (point == SidecarInputPoint.PreProcessor) {
             params = ppe.getEndpoint().getProcessor().getPreProcessorParameters();
         } else {
@@ -113,11 +111,11 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
 
     @Override
     public SidecarInputBuilder<PreProcessEvent> getPreProcessorInputBuilder(SidecarConfiguration cfg) {
-        SidecarConfigurationHolder h = configurationStore.get(new ConfigKey(cfg));
+        SidecarConfigurationHolder h = configurationStore.get(new MasheryPreprocessorPointReference(cfg));
         if (h != null) {
             SidecarInputBuilder<PreProcessEvent> retVal = h.preProcessorBuilder;
             if (retVal == null) {
-                synchronized (this) {
+                synchronized (syncMon) {
                     if (h.preProcessorBuilder == null) {
                         h.preProcessorBuilder = compiler.compilePreProcessor(cfg);
                     }
@@ -134,11 +132,11 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
 
     @Override
     public SidecarInputBuilder<PostProcessEvent> getPostProcessorInputBuilder(SidecarConfiguration cfg) {
-        SidecarConfigurationHolder h = configurationStore.get(new ConfigKey(cfg));
+        SidecarConfigurationHolder h = configurationStore.get(new MasheryPreprocessorPointReference(cfg));
         if (h != null) {
             SidecarInputBuilder<PostProcessEvent> retVal = h.postProcessorBuilder;
             if (retVal == null) {
-                synchronized (this) {
+                synchronized (syncMon) {
                     if (h.postProcessorBuilder == null) {
                         h.postProcessorBuilder = compiler.compilePostProcessor(cfg);
                     }
@@ -155,11 +153,11 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
 
     @Override
     public SidecarInputBuilder<PreProcessEvent> getPreflightInputBuilder(SidecarConfiguration cfg) {
-        SidecarConfigurationHolder h = configurationStore.get(new ConfigKey(cfg));
+        SidecarConfigurationHolder h = configurationStore.get(new MasheryPreprocessorPointReference(cfg));
         if (h != null) {
             SidecarInputBuilder<PreProcessEvent> retVal = h.preflightBuilder;
             if (retVal == null) {
-                synchronized (this) {
+                synchronized (syncMon) {
                     if (h.preflightBuilder == null) {
                         h.preflightBuilder = compiler.compilePreFlight(cfg);
                     }
@@ -174,64 +172,50 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
         }
     }
 
+    /**
+     * Returns the set of references that are declared in this file.
+     * @param file path to the file
+     * @return set of references, or empty set if no references are found.
+     */
     @Override
-    public void acceptConfigurationChange(String serviceId, String endpointId, SidecarConfiguration cfg) {
-        ConfigKey key = new ConfigKey(serviceId, endpointId, cfg.getPoint());
-        SidecarConfigurationHolder h = configurationStore.get(key);
+    public Set<MasheryPreprocessorPointReference> getDeclaredIn(String file) {
+        HashSet<MasheryPreprocessorPointReference> retVal = new HashSet<>();
+        configurationStore.forEach((key, storedConfig) -> {
+            if (storedConfig.isDeclaredIn(file)) {
+                retVal.add(key);
+            }
+        });
+
+        return retVal;
+    }
+
+    @Override
+    public void acceptConfigurationChange(MasheryPreprocessorPointReference ref, String declaredInFile, SidecarConfiguration cfg) {
+        SidecarConfigurationHolder h = configurationStore.get(ref);
         if (h != null) {
             h.setConfiguration(cfg);
             h.masheryConfigReloadable = false;
+            h.declaredInFile = declaredInFile;
         } else {
-            synchronized (this) {
+            synchronized (syncMon) {
                 h = new SidecarConfigurationHolder();
                 h.setConfiguration(cfg);
                 h.masheryConfigReloadable = false;
-                configurationStore.put(key, h);
+                h.declaredInFile = declaredInFile;
+                configurationStore.put(ref, h);
             }
         }
     }
 
     @Override
-    public void forget(String serviceId, String endpointId, SidecarInputPoint point) {
-        configurationStore.remove(new ConfigKey(serviceId, endpointId, point));
-    }
-
-    class ConfigKey {
-        String serviceId;
-        String endpointId;
-        SidecarInputPoint point;
-
-        ConfigKey(String serviceId, String endpointId, SidecarInputPoint point) {
-            this.serviceId = serviceId;
-            this.endpointId = endpointId;
-            this.point = point;
-        }
-
-        ConfigKey(SidecarConfiguration cfg) {
-            this.serviceId = cfg.getServiceId();
-            this.endpointId = cfg.getEndpointId();
-            this.point = cfg.getPoint();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ConfigKey configKey = (ConfigKey) o;
-            return Objects.equals(serviceId, configKey.serviceId) &&
-                    Objects.equals(endpointId, configKey.endpointId) &&
-                    point == configKey.point;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(serviceId, endpointId, point);
-        }
+    public void forget(MasheryPreprocessorPointReference ref) {
+        configurationStore.remove(ref);
     }
 
     class SidecarConfigurationHolder {
 
-        Map<String,String> originalConfiguration;
+        String declaredInFile;
+        Map<String, String> originalConfiguration;
         boolean masheryConfigReloadable = true;
         SidecarConfiguration sidecarConfig;
 
@@ -255,5 +239,29 @@ public class ProductionConfigurationStore implements SidecarConfigurationStore {
             checkTime.set(System.currentTimeMillis());
         }
 
+        /**
+         * Checks if this configuration is declared in the local file
+         * @param file path to the file
+         * @return true only if this entry (a) was declared from the file, and that the argument matches
+         * the value stored in the object.
+         */
+        boolean isDeclaredIn(String file) {
+            if (declaredInFile == null) return false;
+            return Objects.equals(declaredInFile, file);
+        }
+
+        void refreshBuilders() {
+            if (preflightBuilder != null) {
+                preflightBuilder = getPreflightInputBuilder(sidecarConfig);
+            }
+
+            if (preProcessorBuilder != null) {
+                preProcessorBuilder = getPreProcessorInputBuilder(sidecarConfig);
+            }
+
+            if (postProcessorBuilder != null) {
+                postProcessorBuilder = getPostProcessorInputBuilder(sidecarConfig);
+            }
+        }
     }
 }

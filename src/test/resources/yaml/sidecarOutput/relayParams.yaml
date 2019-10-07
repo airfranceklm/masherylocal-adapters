@@ -1,0 +1,7 @@
+relayParams:
+  # No effect
+---
+relayParams:
+  a: string
+  b: 32
+  c: false

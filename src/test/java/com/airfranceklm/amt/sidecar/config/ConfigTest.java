@@ -1,19 +1,56 @@
 package com.airfranceklm.amt.sidecar.config;
 
+import com.airfranceklm.amt.sidecar.AFKLMSidecarMockSupport;
 import com.airfranceklm.amt.sidecar.AFKLMSidecarProcessor;
+import com.airfranceklm.amt.sidecar.SidecarRequestCase;
+import com.airfranceklm.amt.sidecar.SidecarTestDSL;
 import com.mashery.http.io.ContentSource;
+import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
+import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
+import org.easymock.TestSubject;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class ConfigTest {
+public class ConfigTest extends AFKLMSidecarMockSupport {
+
+    @Test
+    public void testConfigurationAssignsServiceEndpointIds() {
+        SidecarTestDSL dsl = SidecarTestDSL.make();
+        dsl.configureEndpointData((endp) -> {
+            endp.identifyAs("serviceId", "endpointId", "endpointName");
+        });
+
+        SidecarRequestCase src = dsl.build();
+
+        PreProcessEvent pre = createPreProcessorMock(src);
+        PostProcessEvent post = createPostProcessorMock(src);
+        replayAll();
+
+        MasheryConfigSidecarConfigurationBuilder builder = new MasheryConfigSidecarConfigurationBuilder();
+        SidecarConfiguration preProc = builder.buildFrom(pre);
+        assertEquals("serviceId", preProc.getServiceId());
+        assertEquals("endpointId", preProc.getEndpointId());
+
+        SidecarConfiguration postProc = builder.buildFrom(post);
+        assertEquals("serviceId", preProc.getServiceId());
+        assertEquals("endpointId", preProc.getEndpointId());
+    }
+
+    @Test
+    public void testConfigurationOfNull() {
+        SidecarConfiguration nullConfig = new MasheryConfigSidecarConfigurationBuilder().getSidecarConfiguration(SidecarInputPoint.PreProcessor, null);
+
+        assertEquals(SidecarSynchronicity.Event, nullConfig.getSynchronicity());
+    }
 
     @Test
     public void testExpandTokenScope() {
@@ -136,7 +173,7 @@ public class ConfigTest {
     }
 
     /**
-     * Checks that {@link AFKLMSidecarProcessor#getContentOf(ContentSource)} is reading the data correctly.
+     * Checks that {@link AFKLMSidecarProcessor#getContentOf(ContentSource, Charset)} is reading the data correctly.
      */
     @Test
     public void testContentSourceExtraction() throws IOException {
@@ -159,7 +196,7 @@ public class ConfigTest {
             }
         };
 
-        String contentOf = AFKLMSidecarProcessor.getContentOf(cs);
+        String contentOf = AFKLMSidecarProcessor.getContentOf(cs, StandardCharsets.UTF_8);
         assertEquals(value, contentOf);
     }
 

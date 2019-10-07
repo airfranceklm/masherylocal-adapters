@@ -47,4 +47,9 @@ public class APIClientRequestDSL {
         this.request.setPayload(null);
         return this;
     }
+
+    public APIClientRequestDSL withPayloadFromResource(Class owner, String resource) {
+        this.request.setResourcePayload(owner, resource);
+        return this;
+    }
 }
