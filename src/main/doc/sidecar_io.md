@@ -1,18 +1,38 @@
 # Sidecar Input
 
-A sidecar input is a complex and large (JSON) object that is filled based on the information needs
-of the sidecar. The section below lists the complete structure a sidecar input can have.
+Functionally, the sidecars can receive information about:
+- Parameters the developer specified;
+- Headers (included by default, but could be filtered or suppressed),
+- Remote address of the API client
+- Package key;
+- EAVs of the package key or of the application
+- Token information
+- Called resource
+- Payload or their excerpts
+- Route to the API origin host selected by Mashery
+- Relay information (for post-processor only)
 
-The implementation of Air France/KLM expects that a sidecar at hand will need only fraction of these data elements. For
+A sidecar input is a complex and large (JSON) object that accomodates all those data elements. The section below lists the 
+complete structure a sidecar input can have.
+
+The implementation strategy at Air France/KLM expects that a sidecar at hand will need only fraction of these data elements. For
 example, so sidecars may require only specific excerpts form the JSON objects being passed through. For others,
 the entire payload will be required.
 
-The inclusion of data elements that are required is achieved by specifying these data elements  in the pre- and 
-post-processor configuration.
+**As a developer of a sidecar, you are encouraged to select only the elements that you actually need.** The extraction
+of elements takes processing time and incurs additional network latency. Additionally, elements may contain personal 
+data, so such setups should be either adequately protected or unnecessary data be removed.
 
-** As a developer of a sidecar, you are encouraged to select only the elements that you actually need.** The extraction
-of elements takes processing time and incurs additional network latency. Additionally, elements may contain data
-that may be related to the 
+### Technical limitations about expanding post-processor inputs
+
+Due to the limitation of Mashery API, it is not possible to extract the data that was sent to the API origin from the
+Mashery post-processing event. Only the *original* client request will be available. The original request will 
+frequently contain elements, such as access tokens, that are not desired to be sent to the sidecar.
+
+The processor provides a possibility to extract *excerpts* that will select small pieces of the payload.
+
+It is the responsibility of the deployer to ensure that all sensitive elements are *dropped* in the event the 
+sidecar will require the combination of the request and response data.
 
 # Full Sidecar Input
 A fully blown Sidecar object is present in the example below.
@@ -268,26 +288,7 @@ author of the sidecar to address the size and volatility. This can be solved, in
 mapping from package keys to the desired treatment e.g. in the Dynamo DB. 
 
       
-## Specifying required sidecar inputs elements
-In order to optimize the traffic to the sidecar
-and to reduce the latency, the configuration of the pre- and post-processor for each endpoint must indicate which 
-data elements it actually needs. The sidecars can receive information about:
-- Headers (included by default, but could be filtered or suppressed),
-- Called resource
-- Remote address of the API client
-- Token information
-- EAVs of the package key or of the application
 
-// TODO This need be 
-
-### Technical limitations about expanding post-processor inputs
-
-Due to the limitation of Mashery API, it is not possible to extract the data that was sent to the API origin from the
-Mashery post-processing event. Only the *original* client request will be available. The original request will 
-frequently contain elements, such as access tokens, that are not desired to be sent to the sidecar.
-
-It is the responsibility of the deployer to ensure that all sensitive elements are *dropped* in the event the 
-sidecar will require the combination of the request and response data.
    
 ### Request and Response Headers
 Depending on the point and set configuration, the input to the pre-processor may contain data from both API request
