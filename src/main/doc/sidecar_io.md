@@ -1,7 +1,99 @@
 # Sidecar Input
 
-A sidecar input is a complex (JSON) object that is filled based on the information needs
-of the sidecar.
+A sidecar input is a complex and large (JSON) object that is filled based on the information needs
+of the sidecar. The section below lists the complete structure a sidecar input can have.
+
+The implementation of Air France/KLM expects that a sidecar at hand will need only fraction of these data elements. For
+example, so sidecars may require only specific excerpts form the JSON objects being passed through. For others,
+the entire payload will be required.
+
+The inclusion of data elements that are required is achieved by specifying these data elements  in the pre- and 
+post-processor configuration.
+
+** As a developer of a sidecar, you are encouraged to select only the elements that you actually need.** The extraction
+of elements takes processing time and incurs additional network latency. Additionally, elements may contain data
+that may be related to the 
+
+# Full Sidecar Input
+A fully blown Sidecar object is present in the example below.
+```json
+{
+  "masheryMessageId" : "mashery-message-uuid",
+  "point" : "PreProcessor",
+  "synchronicity" : "RequestResponse",
+  "packageKey" : "PackageKey",
+  "serviceId" : "serviceId",
+  "endpointId" : "endpointId",
+  "params" : {
+    "StringParam" : "StringValue",
+    "NumberParam" : 42,
+    "BooleanParam" : true,
+    "Object" : {
+      "A" : "lorem",
+      "B" : "ypsum"
+    }
+  },
+  "request" : {
+    "headers" : {
+      "content-type" : "application/json",
+      "x-markets" : "NL|FR"
+    },
+    "payloadExcerpts" : {
+      "Exp-A" : "Extracted portion"
+    },
+    "payloadLength" : 5674,
+    "payload" : "This is a short version of string having 5674 bytes",
+    "payloadBase64Encoded" : false
+  },
+  "response" : {
+    "headers" : {
+      "x-operational-costs" : "B835650-1",
+      "content-type" : "application/json"
+    },
+    "payloadExcerpts" : {
+      "Exp-R" : "Extracted portion from response"
+    },
+    "payloadLength" : 43964,
+    "payload" : "This is a short version of response having 43964 bytes",
+    "payloadBase64Encoded" : false,
+    "responseCode" : 201
+  },
+  "eavs" : {
+    "Eav_A" : "Value_A",
+    "Eav_B" : "Value_B",
+    "Eav_C" : "Value_C"
+  },
+  "packageKeyEAVs" : {
+    "Eav_D" : "Value_D",
+    "Eav_E" : "Value_E",
+    "Eav_F" : "Value_F"
+  },
+  "operation" : {
+    "httpVerb" : "GET",
+    "path" : "path/to/op",
+    "query" : {
+      "m" : "b737-800",
+      "depT" : "LFPG",
+      "dest" : "EHAM"
+    },
+    "uri" : "https://api-unittest.airfranceklm.com/travel/unittest/path/to/op?m=b737-800&dept=LFPG&dest=EHAM"
+  },
+  "token" : {
+    "bearerToken" : "adfalkdsfjakjfdajlkjrer",
+    "scope" : "Role1 Role2 Role3",
+    "userContext" : "User Context Value",
+    "expires" : 1570537787078,
+    "grantType" : "password"
+  },
+  "routing" : {
+    "httpVerb" : "GET",
+    "uri" : "http://klm-backend.departure.klm.cpom/backend-route/path/to/op?m=b737-800&dept=LFPG&dest=EHAM"
+  },
+  "remoteAddress" : "192.168.145.32"
+}
+```
+
+# Sidecar Input JSON Composition
 
 ## Basic Inputs to the sidecar
 Sidecars receives always the following minimum input:
@@ -185,7 +277,8 @@ data elements it actually needs. The sidecars can receive information about:
 - Remote address of the API client
 - Token information
 - EAVs of the package key or of the application
-- Payload sent by an API client / returned to the API client.
+
+// TODO This need be 
 
 ### Technical limitations about expanding post-processor inputs
 
@@ -272,7 +365,7 @@ Nevertheless, some applications (e.g. security logging) may find this parameter 
 particular lambda, then it will be filled with the Mashery-known IP address:
 ```json
 {
-  "remoteAddress": "123.456.789.012"
+  "remoteAddr": "123.456.789.012"
 }
 ```
 
@@ -285,7 +378,6 @@ attach the significance ot the grant type.
 ```json
 {
   "token": {
-    "bearerToken": "aBearerTokenActuallyUsed",
     "scope": "a-scope",
     "userContext": "aUserContext",
     "expires": "2020-01-01T13:39:45Z",
@@ -293,12 +385,12 @@ attach the significance ot the grant type.
   }
 }
 ```
-
+> TODO: extract the values for the grant type which Mashery is reporting.
 ### Routing
 Routing information gives the HTTP verb and the URI of the back-end, to which it will be sent. This information may
 be interested to the functions that aim optimizing the traffic to the back-ends which are overused. 
 
-A typical business scenario could be that an application is not generating enough conversions while using a back-end that incurs a
+A typical busines scenario could be that an application is not generating enough conversions while using a back-end that incurs a
 very high running costs for AFKLM. sidecars could do several things with this information:
 - implement selective caching for named application keys;
 - override changeRoute information for the specific request, e.g. re-route the client request to the back-end having
@@ -307,7 +399,7 @@ very high running costs for AFKLM. sidecars could do several things with this in
 
 ```json
 {
-  "routing": {
+  "changeRoute": {
     "uri": "https://the-backend-uri",
     "httpVerb": "POST"
   }
@@ -394,162 +486,26 @@ compression schemes that are not necessarily known to the processor. Or, the cli
 a protocol that will use specially composed JSON-like structures that cannot be correctly parsed by the
 default JSON parser.
 
-The following presents the fields that will be filled in when a payload is extracted:
-
 ```json
 {
   "request": {
-    "payloadBase64Encoded": false,
-    "payload": "a payload string",
-    "payloadLength": 345
-  }
-}
-```
-or, in case of post-processor, it would be listed under the `response` field.
- 
-```json
-{
-  "response": {
-    "payloadBase64Encoded": false,
-    "payload": "a payload string",
-    "payloadLength": 345
+    "payload": "a payload string"
   }
 }
 ```
 
-These fields are:
-- `payloadLength`: the length of the payload. If no payload was transmitted (e.g. for GET request for a pre-procesor
-   extraction), it will be sent to zero;
-- `payload`: the payload string of what Mashery gateway has received, and
-- `payloadBase64Encoded`: whether this payload is Base-64 encoded from the original stream processed by Mashery.
-
-> At the point of building the input message, no compression is applied on the actual bodies themselves. It is expected
-> that the communication stack will apply necessary compression transparently from Mashery gateway. Trying to compress
-> data at this stage might lead, thus, to higher CPU use.  
-
-The payload will be Base-64 encoded when the process will not be able to establish that the payload being extracted
-is a text string. In order to qualify that the payload is actually text, an HTTP message must meet the following
-conditions:
-- the `content-type` header must be set to either of the following:
-    - `text/plain`, or any starts with `text/`, e.g. `text/css`;
-    - `application/vnd.api+json`
-    - start with `application/json` (including all flavours, e.g. `application/json+hal`)
-    - starts with `application/javascript`
-    - `application/ld+json`
-    - `application/yaml`
-    - `application/x-www-form-urlencoded`
-    - starts with `application/xml`
-    - starts with `application/xhtml`
-    - starts with `application/graphql`;
-- The content ttype should be in a charset that Mashery Java VM is able to understand. Charsets UTF-8 and ASCII are supported;
-- There are **no** `content-encoding`, `transfer-encoding` and `content-transfer-encoding` headers set.
-
-The motivation for such design decision is that the client or API origin may apply an incorrect combination of these headers.
-E.g., an API client can set `content-encoding: gzip` without sending actually compressed entity. Processing the payload
-according to headers may yield unexpected results that will be difficult to narrow down between four members of the chain
-(api client, sidecar processor, sidecar itself, and API origin).
-
-This decision removed the sidecar processor from a party that performs the transcoding incorrectly.
-
-Where the payload extraction did take place, but no payload was present, then only `payloadLength` will be set to `0` 
-as the following example illustrates.
+If the API client has applied a compression algorithm, e.g. gzip, then the content of the `payload` field
+will be the gzipped body as received by Mashery. For this matter, the labmda function needs to ensure that 
+it receives the `content-type` and `content-encoding` headers.
 ```json
 {
   "request": {
-    "payloadLength": 0
+    "headers": {
+      "content-type": "text",
+      "content-encoding": "gzip"
+    },
+    "payload": "H4sIAAA2aF0AA3N0JAo4IQFnZOCCBlzRgBsWAABKYxehdAAAAA=="
   }
 }
 ```
 
-> Note: the request element is filled only when contains meaningful data. If the combination of the configuration
-> and actual request is that:
-> - there are no headers to send, and
-> - there is no payload to be included,
->
-> then the `request` element (or `response`) will be fully omitted in the input structure. The code of the sidecar should
-> check for the presence of the element before trying reading it's properties.
-
-# Sidecar outputs
-The output of the sidecar is only meaningful if the function is invoked in the
-request/response fashion and specifies what needs to be *changed* in the API origin request (for pre-processor) 
-or  in the API client response (for post-processor). For some stacks, the processor cannot technically receive
-the output of the function if the function is invoked as an event. (That's why sidecars should observe
-the `synchronicity` parameter.)
-
-The return value is a json object containing the following fields:
-- `unchangedUntil`: optional field; if present specifies the time until which further calls with exactly the same
-   inputs will be *idempotent*. Refer to the concept of the idenpotency above;
-- `dropHeaders`: the list of addHeaders to be dropped from the request;
-- `addHeaders`: the list of addHeaders that need to be set/overridden in the
-   communication to the API back-end (in case of pre-processor) or to the API client
-   (in case of post-processor);
-- `changeRoute`: change the changeRoute to the API origin. Meaningful only in the context of the pre-processor;
-- `payload`: the content to be sent to the API back-end (in case of pre-processor) or to 
-   the API client (in case of post-processor);
-- `json`: A convenience field that will perform the following operations:
-   - Set the `content-type` header to `application/json`. (If the `addHeader` specifies any other `contnet-type`,
-     the latter will be used.);
-   - Set the `conent-encoding` to `gzip`;
-   - Render the JSON to the string and will send it to the client.
-   
-   The motivation to have this supported is to alleviate the sidecar developers from performing a 
-   boilerplate operations of encoding JSON objects into correct payload.
-   
-   If both `payload` and `json` fields  
-   are provided in the same response, then the value supplied in the `payload` field is taken to send to the 
-   API origin/API client, and the `json` field is ignored;
--  `code`: the response code to be sent. At the pre-processor stage, can also be accompanied by
-- `message`: an error message to be printed.
-   
-### `dropHeaders` element
-The `dropHeaders` element is a case-insensitive list of headers that need to be removed from the API request to
-the API provider or form the response to the API client.
-
-```json
-{
-  "dropHeaders": [
-    "x-header-1", "x-header-2"
-  ]
-}
-```
-
-### `addHeaders` element
-The `addHeaders` element specifies the headers to be added to the API origin (in case of pre-processor) or
-to the API client's response in the event of the post-processor.
-
-```json
-{
-  "addHeaders": {
-    "X-Filtered-By": "Lambda.V23.R33"
-  }
-}
-```
-
-### `changeRoute` element
-The `changeRoute` element supports two elements:
-
-```json
-{
-  "changeRoute": {
-    "uri": "https://the-full-host-name/a/path/to/op?qeury#andFragment",
-    "host": "the-full-host-name",
-    "file": "/a/path/to/op?withQueryString=true",
-    "port": 8443,
-    "httpVerb": "post"
-  }
-}
-```
-
-The sidecar should return only the fields that it requires changing: either the URI of the API origin or an
-HTTP verb that should be used to make a call.
-
-The purpose of `host`, `port`, and `file` elements is to allow the functoin to easily override individual elements
-witout reuqesting receiving the details of the complete operation. For example, if the intention of the lambda
-function is to route certain applications to a specific back-end, then the function can return a short-cut as
-```json
-{
-  "changeRoute": {
-    "host": "a.super.custom.host"
-  }
-}
-```
