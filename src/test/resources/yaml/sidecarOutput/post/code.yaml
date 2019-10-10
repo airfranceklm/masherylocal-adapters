@@ -1,0 +1,10 @@
+modify:
+  code:
+  # No effect
+---
+modify:
+  code: 301
+---
+modify:
+  code: "301"
+  # Wrong type; will be ignored.

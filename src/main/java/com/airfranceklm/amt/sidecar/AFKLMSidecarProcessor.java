@@ -5,12 +5,15 @@ import com.airfranceklm.amt.sidecar.config.SidecarInputPoint;
 import com.airfranceklm.amt.sidecar.config.SidecarSynchronicity;
 import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilterGroup;
 import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilteringResult;
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPostProcessorOutputImpl;
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPreProcessorOutputImpl;
 import com.airfranceklm.amt.sidecar.input.EventInspector;
 import com.airfranceklm.amt.sidecar.input.SidecarInputBuilder;
+import com.airfranceklm.amt.sidecar.model.*;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStacks;
 import com.airfranceklm.amt.sidecar.stack.InMemoryStack;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.airfranceklm.amt.sidecar.stack.ProcessorServices;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mashery.http.HTTPHeaders;
 import com.mashery.http.MutableHTTPHeaders;
@@ -50,7 +53,10 @@ import java.util.zip.GZIPOutputStream;
  * AFKLM sidecar pre- and post-processor. See the <a href="./readme.md">readme file</a> file for the complete
  * description of the operation.
  */
-public class AFKLMSidecarProcessor implements TrafficEventListener {
+public class AFKLMSidecarProcessor implements TrafficEventListener, ProcessorServices {
+
+    private static final SidecarPreProcessorOutput doNothingAtPreprocessor = new SidecarPreProcessorOutputImpl();
+    private static final SidecarPostProcessorOutput doNothingAtPostProcessor = new SidecarPostProcessorOutputImpl();
 
     private static final TimeUnit IDEMPOTENT_STORAGE_UNIT = TimeUnit.MINUTES;
     private static final int IDEMPOTENT_STORAGE_ADVANCE = 5;
@@ -108,21 +114,23 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         this(new ProductionConfigurationStore());
         initIdempotentDependencies();
 
+        log.info("AFKLM Sidecar Processor has been loaded.");
+    }
+
+    void initIdempotentDependencies() {
+        idempotentUpdateDebounce = new IdempotentUpdateDebouncer(300, TimeUnit.SECONDS, 10);
+        idempotentShallowCache = new IdempotentShallowCache(5 * 1024);
+    }
+
+    void watchLocalConfiguration(File root) {
         try {
-            scanner = new LocalConfigDirectoryScanner(this, new File("/etc/mashery/sidecar"));
+            scanner = new LocalConfigDirectoryScanner(this, root);
             scanner.scanOnStartup();
 
             scanner.watch();
         } catch (Throwable ex) {
             log.error(String.format("Could not initialize local directory watch: %s", ex.getMessage()), ex);
         }
-
-        log.info("AFKLM Sidecar Processor has been loaded.");
-    }
-
-    public void initIdempotentDependencies() {
-        idempotentUpdateDebounce = new IdempotentUpdateDebouncer(300, TimeUnit.SECONDS, 10);
-        idempotentShallowCache = new IdempotentShallowCache(5 * 1024);
     }
 
     public AFKLMSidecarProcessor(SidecarConfigurationStore store) {
@@ -144,44 +152,6 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         return jsonFormat.parseDateTime(date).toDate();
     }
 
-
-    public static SidecarOutput toSidecarOutput(InputStream is, Charset c) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buf = new byte[10240];
-
-        int k = 0;
-        while ((k = is.read(buf)) > 0) {
-            baos.write(buf, 0, k);
-        }
-        return toSidecarOutput(new String(baos.toByteArray(), c));
-    }
-
-    /**
-     * Convert a raw string value into the Lambda sidecar output
-     *
-     * @param lambdaRawValue lambda sidecar output value
-     * @return marshalled object
-     * @throws IOException if the marshalling cannot be successfully completed.
-     */
-    @SuppressWarnings("unchecked")
-    public static SidecarOutput toSidecarOutput(String lambdaRawValue) throws IOException {
-        try {
-            MarshallableSidecarOutput rawOut =
-             objectMapper.readValue(lambdaRawValue,
-                     MarshallableSidecarOutput.class);
-
-            if (rawOut != null) {
-                if (rawOut.getJson() != null) {
-                    rawOut.setJSONPayload((Map<String, ?>) objectMapper.convertValue(rawOut.getJson(), Map.class));
-                }
-
-            }
-            return rawOut;
-        } catch (JsonMappingException ex) {
-            log.error(String.format("Function returned JSON that cannot be converted to the output: %s", lambdaRawValue));
-            throw new IOException("Cannot unmarshal Lambda return");
-        }
-    }
 
     @Override
     public void handleEvent(TrafficEvent trafficEvent) {
@@ -257,7 +227,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         // correctly cached.
 
         try {
-            SidecarOutput sOut = invokeIdempotentAware(cmd);
+            SidecarPreProcessorOutput sOut = invokeIdempotentAware(cmd);
             return applySidecarOutput(ppe, sOut);
         } catch (IOException ex) {
             if (cfg.isFailsafe()) {
@@ -310,12 +280,12 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         }
 
         SidecarInvocationData cmd = builder.build(ppe, filterResult);
-        SidecarOutput sidecarOutput = null;
+        SidecarPreProcessorOutput sidecarOutput = null;
 
         switch (cmd.getInput().getSynchronicity()) {
             case Event:
             case RequestResponse:
-                sidecarOutput = invokeRelayAware(cmd);
+                sidecarOutput = invokePreProcessorRelayAware(cmd);
                 break;
             case NonBlockingEvent:
                 invokeInBackground(cmd);
@@ -331,24 +301,32 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         if (sidecarOutput != null) {
             applySidecarOutput(ppe, sidecarOutput);
         }
-
-
     }
 
-    private SidecarOutput invokeRelayAware(SidecarInvocationData cmd) throws IOException {
+    private SidecarPreProcessorOutput invokePreProcessorRelayAware(SidecarInvocationData cmd) throws IOException {
         SidecarOutput retVal = invokeIdempotentAware(cmd);
 
-        if (retVal != null && retVal.relaysMessageToPostprocessor()) {
-            if (retVal.getRelayParams() != null) {
-                cmd.logEntry(RELAY_PARAMS, retVal.createSerializeableRelayParameters());
-            }
-        }
+        if (retVal != null) {
+            if (retVal instanceof SidecarPreProcessorOutput) {
+                SidecarPreProcessorOutput preOutput = (SidecarPreProcessorOutput) retVal;
 
-        return retVal;
+                if (preOutput.relaysMessageToPostprocessor()) {
+                    if (preOutput.getRelayParams() != null) {
+                        cmd.logEntry(RELAY_PARAMS, preOutput.createSerializableRelayParameters());
+                    }
+                }
+
+                return preOutput;
+            } else {
+                throw new IllegalStateException(String.format("Wrong class returned: %s", retVal.getClass().getName()));
+            }
+        } else {
+            return null;
+        }
     }
 
-    private SidecarOutput invokeIdempotentAware(SidecarInvocationData cmd) throws IOException {
-        SidecarOutput retVal = null;
+    private SidecarPreProcessorOutput invokeIdempotentAware(SidecarInvocationData cmd) throws IOException {
+        SidecarPreProcessorOutput retVal = null;
         if (cmd.isIdempotentAware()) {
             try {
                 final String cacheKey = cmd.getCacheKey();
@@ -357,7 +335,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
                 // the idempotent response will be placed in a shallow cache to speed things up even further.
                 SidecarOutputCache soc = idempotentShallowCache.get(cacheKey);
                 if (soc == null) {
-                    soc = (SidecarOutputCache) cmd.getCache().get(getClass().getClassLoader(), cacheKey);
+                    soc = (SidecarOutputCache) cmd.getCache().get(cmd.getStack().getClass().getClassLoader(), cacheKey);
                     idempotentShallowCache.put(cacheKey, soc);
                 }
 
@@ -377,9 +355,9 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
             }
         }
 
-        retVal = invokeWithCircuitBreaker(cmd);
+        retVal = invokePreProcessorWithCircuitBreaker(cmd);
         if (cmd.isIdempotentAware() && retVal != null && retVal.getUnchangedUntil() != null) {
-            SidecarOutputCache soc = new SidecarOutputCache(retVal,
+            SidecarOutputCache soc = new SidecarOutputCache(retVal.toSerializableForm(),
                     IDEMPOTENT_STORAGE_UNIT,
                     IDEMPOTENT_STORAGE_ADVANCE);
 
@@ -400,20 +378,26 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
         }
     }
 
-    private SidecarOutput invokeWithCircuitBreaker(SidecarInvocationData cmd) throws IOException {
-        // TODO: build the support for the circuit breaker.
-        return invokeStack(cmd);
+    private SidecarPreProcessorOutput invokePreProcessorWithCircuitBreaker(SidecarInvocationData cmd) throws
+            IOException {
+        // TODO: Check if the circuit breaker is open.
+
+        if (cmd.getStack() != null) {
+            return cmd.getStack().invokeAtPreProcessor(cmd.getStackConfiguration(), cmd, this);
+        } else {
+            throw new IOException("Null stack is not allowed");
+        }
     }
 
-    /**
-     * Performs the actual invocation of the network sidecar stack.
-     *
-     * @param cmd sidecar invocation data
-     * @return instance of {@link SidecarOutput} that was returned from sidecar.
-     * @throws IOException if the invocation cannot be invoked.
-     */
-    private SidecarOutput invokeStack(SidecarInvocationData cmd) throws IOException {
-        return cmd.getStack().invoke(cmd.getStackConfiguration(), cmd.getInput());
+    private SidecarPostProcessorOutput invokePostProcessorWithCircuitBreaker(SidecarInvocationData cmd) throws
+            IOException {
+        // TODO: Check if the circuit breaker is open.
+
+        if (cmd.getStack() != null) {
+            return cmd.getStack().invokeAtPostProcessor(cmd.getStackConfiguration(), cmd, this);
+        } else {
+            throw new IOException("Null stack is not allowed");
+        }
     }
 
     /**
@@ -424,31 +408,33 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
      * @return true if handling can continue, false otherwise.
      * @throws IOException if data could not be applied.
      */
-    private boolean applySidecarOutput(PreProcessEvent ppe, SidecarOutput output) throws IOException {
+    private boolean applySidecarOutput(PreProcessEvent ppe, SidecarPreProcessorOutput output) throws IOException {
         // Null object means do-nothing.
         if (output == null) {
             return true;
         }
 
-        if (output.getCode() != null) {
-            sendCurtailed(ppe.getCallContext().getResponse(), output);
+        if (output.getTerminate() != null) {
+            sendCurtailed(ppe.getCallContext().getResponse(), output.getTerminate());
             return false;
-        } else {
+        } else if (output.getModify() != null) {
+            RequestModificationCommand cmd = output.getModify();
+
             // Apply any modifications that were returned form the function.
-            if (output.getDropHeaders() != null) {
-                output.getDropHeaders().forEach(h -> {
+            if (cmd.getDropHeaders() != null) {
+                cmd.getDropHeaders().forEach(h -> {
                     ppe.getClientRequest().getHeaders().remove(h);
                 });
             }
 
-            if (output.getAddHeaders() != null) {
-                output.getAddHeaders().forEach((key, value) -> {
+            if (cmd.getAddHeaders() != null) {
+                cmd.getAddHeaders().forEach((key, value) -> {
                     ppe.getClientRequest().getHeaders().set(key, value);
                 });
             }
 
-            if (output.getChangeRoute() != null) {
-                SidecarOutputRouting r = output.getChangeRoute();
+            if (cmd.getChangeRoute() != null) {
+                RequestRoutingChangeBean r = cmd.getChangeRoute();
 
                 if (r.getUri() != null) {
                     ppe.getClientRequest().setURI(r.getUri());
@@ -470,40 +456,42 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
                 }
             }
 
-            if (output.getPayload() != null) {
-                ppe.getClientRequest().setBody(new ContentProducerImpl(output.getPayload()));
-            } else if (output.getJSONPayload() != null) {
-                if (!output.addsContentType()) {
+            if (cmd.getPayload() != null) {
+                ppe.getClientRequest().setBody(new ContentProducerImpl(cmd.getPayload()));
+            } else if (cmd.getJSONPayload() != null) {
+                if (!cmd.addsContentType()) {
                     ppe.getClientRequest().getHeaders().set("content-type", "application/json");
                 }
                 ppe.getClientRequest().getHeaders().set("content-encoding", "gzip");
-                ppe.getClientRequest().setBody(new ContentProducerImpl(toJSON(output.getJSONPayload(), true)));
+                ppe.getClientRequest().setBody(new ContentProducerImpl(JsonHelper.toJSON(cmd.getJSONPayload(), true)));
             }
-
-            return true;
         }
+
+        return true;
     }
 
-    private void applySidecarOutput(PostProcessEvent ppe, SidecarOutput output) throws IOException {
-        if (output.getCode() != null) {
-            sendCurtailed(ppe.getCallContext().getResponse(), output);
-        } else {
+    private void applySidecarOutput(PostProcessEvent ppe, SidecarPostProcessorOutput output) throws IOException {
+        if (output.getTerminate() != null) {
+            sendCurtailed(ppe.getCallContext().getResponse(), output.getTerminate());
+        } else if (output.getModify() != null) {
+            ResponseModificationCommand cmd = output.getModify();
+
             // Apply any modifications that were returned form the function.
-            if (output.getDropHeaders() != null) {
-                output.getDropHeaders().forEach(h -> ppe.getServerResponse().getHeaders().remove(h));
+            if (cmd.getDropHeaders() != null) {
+                cmd.getDropHeaders().forEach(h -> ppe.getServerResponse().getHeaders().remove(h));
             }
 
-            if (output.getAddHeaders() != null) {
+            if (cmd.getAddHeaders() != null) {
                 final MutableHTTPHeaders headers = ppe.getServerResponse().getHeaders();
-                output.getAddHeaders().forEach(headers::set);
+                cmd.getAddHeaders().forEach(headers::set);
             }
 
-            if (output.getPayload() != null) {
-                ppe.getServerResponse().setBody(new ContentProducerImpl(output.getPayload()));
+            if (cmd.getPayload() != null) {
+                ppe.getServerResponse().setBody(new ContentProducerImpl(cmd.getPayload()));
             }
 
-            if (output.getJSONPayload() != null) {
-                ppe.getServerResponse().setBody(new ContentProducerImpl(toJSON(output.getJSONPayload())));
+            if (cmd.getJSONPayload() != null) {
+                ppe.getServerResponse().setBody(new ContentProducerImpl(JsonHelper.toJSON(cmd.getJSONPayload())));
             }
         }
     }
@@ -550,12 +538,12 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
         SidecarInvocationData cmd = builder.build(ppe, filterResult);
         // TODO: Fetch the relayed data, if any.
-        SidecarOutput sidecarOutput = null;
+        SidecarPostProcessorOutput sidecarOutput = null;
 
         switch (cmd.getInput().getSynchronicity()) {
             case Event:
             case RequestResponse:
-                sidecarOutput = invokeIdempotentAware(cmd);
+                sidecarOutput = invokePostProcessorWithCircuitBreaker(cmd);
                 break;
             case NonBlockingEvent:
                 invokeInBackground(cmd);
@@ -645,33 +633,29 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
      * Terminates pre-processing of the request and sends the lambda-provided body to the response
      *
      * @param response response object
-     * @param output   output of the lambda dunctoin
+     * @param cmd  termination command.
      */
-    private void sendCurtailed(TrafficManagerResponse response, SidecarOutput output) {
-        if (output.getPayload() != null || output.getJSONPayload() != null) {
+    private void sendCurtailed(TrafficManagerResponse response, SidecarOutputTerminationCommand cmd) {
+        if (cmd.getPayload() != null || cmd.getJSONPayload() != null) {
 
-            response.getHTTPResponse().setStatusCode(output.getCode());
+            response.getHTTPResponse().setStatusCode(cmd.getCode());
 
             final MutableHTTPHeaders headers = response.getHTTPResponse().getHeaders();
             String content = null;
 
-            if (output.getAddHeaders() != null) {
-                output.getAddHeaders().forEach(headers::set);
+            if (cmd.getHeaders() != null) {
+                cmd.getHeaders().forEach(headers::set);
             }
 
-            if (output.getPayload() != null) {
-                content = output.getPayload();
-            } else if (output.getJSONPayload() != null) {
-                if (!output.addsContentType()) {
+            if (cmd.getPayload() != null) {
+                content = cmd.getPayload();
+            } else if (cmd.getJSONPayload() != null) {
+                if (!cmd.specifiesContentType()) {
                     headers.set("content-type", "application/json");
                 }
 
-                try {
-                    content = toJSON(output.getJSONPayload(), true);
-                    headers.set("content-encoding", "gzip");
-                } catch (IOException ex) {
-                    content = "{\"message\": \"Internal server error before processing the call, code 0x000003BB/A\"}";
-                }
+                content = JsonHelper.toJSON(cmd.getJSONPayload(), true);
+                headers.set("content-encoding", "gzip");
             }
 
             if (content != null) {
@@ -679,7 +663,7 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
             }
             response.setComplete();
         } else {
-            sendCurtailed(response, output.getCode(), output.getMessage());
+            sendCurtailed(response, cmd.getCode(), cmd.getMessage());
         }
     }
 
@@ -712,11 +696,14 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
     static String inferTextEncoding(String mimeValue) {
         Matcher m = mimePattern.matcher(mimeValue);
         if (m.matches()) {
-            String specifiedEnc = m.group(3);
-            if (specifiedEnc == null) {
-                return "utf-8";
-            } else {
-                return specifiedEnc;
+            String type = m.group(1);
+            if (isTextMimeType(type)) {
+                String specifiedEnc = m.group(3);
+                if (specifiedEnc == null) {
+                    return "utf-8";
+                } else {
+                    return specifiedEnc;
+                }
             }
         }
         return null;
@@ -858,5 +845,29 @@ public class AFKLMSidecarProcessor implements TrafficEventListener {
 
     public SidecarConfigurationStore getConfigStore() {
         return configStore;
+    }
+
+    //------------------------------------------------------------------
+    // Processor services
+
+
+    @Override
+    public SidecarPreProcessorOutput asPreProcessor(String rawJSON) throws IOException {
+        return JsonHelper.toSidecarPreProcessorOutput(rawJSON);
+    }
+
+    @Override
+    public SidecarPostProcessorOutput asPostProcessor(String rawJSON) throws IOException {
+        return JsonHelper.toSidecarPostProcessorOutput(rawJSON);
+    }
+
+    @Override
+    public SidecarPreProcessorOutput doNothingForPreProcessing() {
+        return doNothingAtPreprocessor;
+    }
+
+    @Override
+    public SidecarPostProcessorOutput doNothingForPostProcessing() {
+        return doNothingAtPostProcessor;
     }
 }

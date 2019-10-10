@@ -1,4 +1,4 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -7,11 +7,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.airfranceklm.amt.sidecar.SidecarInput.*;
+import static com.airfranceklm.amt.sidecar.model.SidecarInput.*;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SidecarInputHTTPMessage {
     private Map<String, String> headers;
+    private Map<String, Object> payloadExcerpts;
     private long payloadLength;
     private String payload;
     private boolean payloadBase64Encoded;
@@ -52,7 +53,7 @@ public class SidecarInputHTTPMessage {
         this.payload = payload;
     }
 
-    long getPayloadLength() {
+    public long getPayloadLength() {
         return payloadLength;
     }
 
@@ -68,6 +69,14 @@ public class SidecarInputHTTPMessage {
         this.payloadBase64Encoded = payloadBase64Encoded;
     }
 
+    public Map<String, Object> getPayloadExcerpts() {
+        return payloadExcerpts;
+    }
+
+    public void setPayloadExcerpts(Map<String, Object> payloadExcerpts) {
+        this.payloadExcerpts = payloadExcerpts;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -76,6 +85,7 @@ public class SidecarInputHTTPMessage {
         return payloadLength == that.payloadLength &&
                 Objects.equals(headers, that.headers) &&
                 Objects.equals(payload, that.payload) &&
+                Objects.equals(payloadExcerpts, that.payloadExcerpts) &&
                 Objects.equals(payloadBase64Encoded, that.payloadBase64Encoded);
     }
 
@@ -89,9 +99,10 @@ public class SidecarInputHTTPMessage {
     @Override
     public String toString() {
         return "SidecarInputHTTPMessage{" +
-                "headers=" + SidecarInput.mapToString(headers) +
+                "headers=" + mapToString(headers) +
                 ", payloadLength=" + payloadLength +
                 ", payload='" + payload + '\'' +
+                ", payloadExcerpts='" + mapToString(payloadExcerpts) + '\'' +
                 ", base64Encoded='" + payloadBase64Encoded + '\'' +
                 '}';
     }

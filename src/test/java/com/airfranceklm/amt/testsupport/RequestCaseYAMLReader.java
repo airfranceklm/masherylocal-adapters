@@ -77,10 +77,10 @@ public abstract class RequestCaseYAMLReader<T extends RequestCase>  {
     protected T toRequestCase(String name, Map<String, Object> yaml) {
         T sc = createRequestCase(name);
 
-        sc.preProcessor = true;
+        sc.preProcessorCase = true;
         forDefinedString(yaml, "point", (v) -> {
             if ("post-processor".equalsIgnoreCase(v)) {
-                sc.preProcessor = false;
+                sc.preProcessorCase = false;
             }
         });
 
@@ -89,7 +89,7 @@ public abstract class RequestCaseYAMLReader<T extends RequestCase>  {
         });
 
 
-        if (!sc.preProcessor &&
+        if (!sc.preProcessorCase &&
                 yaml.containsKey("expect api origin request modifications")) {
             throw new IllegalStateException("You are trying to express MODIFICATION of Mashery's request TOWARDS API origin in the " +
                     "POST-processor. Either your test is about PRE-processor, or the section(s) is(are) " +

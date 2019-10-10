@@ -12,7 +12,7 @@ Functionally, the sidecars can receive information about:
 - Route to the API origin host selected by Mashery
 - Relay information (for post-processor only)
 
-A sidecar input is a complex and large (JSON) object that accomodates all those data elements. The section below lists the 
+A sidecar input is a complex and large (JSON) object that accommodates all those data elements. The section below lists the 
 complete structure a sidecar input can have.
 
 The implementation strategy at Air France/KLM expects that a sidecar at hand will need only fraction of these data elements. For

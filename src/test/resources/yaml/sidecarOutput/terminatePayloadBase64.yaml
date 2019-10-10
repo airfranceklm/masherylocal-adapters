@@ -1,0 +1,10 @@
+terminate:
+  base64Encoded:
+  # No effect
+---
+terminate:
+  base64Encoded: 301
+  # Wrong type; will be ignored.
+---
+terminate:
+  base64Encoded: true

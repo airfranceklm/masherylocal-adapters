@@ -1,7 +1,9 @@
-json:
-  # No effect
+modify:
+  json:
+    # No effect
 ---
-json:
-  a: string
-  b: 32
-  c: false
+modify:
+  json:
+    a: string
+    b: 32
+    c: false

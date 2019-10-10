@@ -1,11 +1,14 @@
-addHeaders:
-  # No effect
+modify:
+  addHeaders:
+    # No effect
 ---
-addHeaders:
-  a: B
-  b: C
+modify:
+  addHeaders:
+    a: B
+    b: C
 ---
-addHeaders:
-  a: B
-  b: 345
-  # Wrong type; will be ignored.
+modify:
+  addHeaders:
+    a: B
+    b: 345
+    # Wrong type; will be ignored.

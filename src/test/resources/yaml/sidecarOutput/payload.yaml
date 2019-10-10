@@ -1,7 +1,10 @@
-payload:
-  # No effect
+modify:
+  payload:
+    # No effect
 ---
-payload: 301
-  # Wrong type; will be ignored.
+modify:
+  payload: 301
+    # Wrong type; will be ignored.
 ---
-payload: "Payload"
+modify:
+  payload: "Payload"

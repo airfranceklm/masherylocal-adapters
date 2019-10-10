@@ -1,0 +1,14 @@
+modify:
+  dropHeaders:
+    # No effect
+---
+modify:
+  dropHeaders:
+    - B
+    - C
+---
+modify:
+  dropHeaders:
+    - B
+    - 345
+  # Wrong type; will be ignored.

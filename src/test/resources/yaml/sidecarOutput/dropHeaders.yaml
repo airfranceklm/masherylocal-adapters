@@ -1,11 +1,22 @@
-dropHeaders:
-  # No effect
+modify:
+  dropHeaders:
+    # No effect
 ---
-dropHeaders:
-  - B
-  - C
+modify:
+  dropHeaders:
+    - A
+    - B
+    - C
 ---
-dropHeaders:
-  - B
-  - 345
-  # Wrong type; will be ignored.
+modify:
+  dropHeaders:
+    - A
+    - 345
+    - C
+    # The list contains numbers in it and should be ignored.
+---
+modify:
+  dropHeaders:
+    a: B
+    b: 345
+    # Wrong type; will be ignored.

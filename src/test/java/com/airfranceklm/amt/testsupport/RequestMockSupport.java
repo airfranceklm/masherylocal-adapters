@@ -1,5 +1,6 @@
 package com.airfranceklm.amt.testsupport;
 
+import com.airfranceklm.amt.sidecar.model.SidecarInvocationData;
 import com.mashery.http.MutableHTTPHeaders;
 import com.mashery.http.ParamGroup;
 import com.mashery.http.ParamIterator;
@@ -76,8 +77,8 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
 
         // Mock the request that Mashery will send to the API origin serve.
         expect(ppe.getClientRequest()).andReturn(tc.createClientRequest()).anyTimes();
-        expect(ppe.getCache()).andReturn(tc.createCacheMock()).anyTimes();
-        expect(ppe.getDebugContext()).andReturn(tc.createDebugContextMock()).anyTimes();
+        expect(ppe.getCache()).andReturn(tc.getCacheMock()).anyTimes();
+        expect(ppe.getDebugContext()).andReturn(tc.getDebugContextMock()).anyTimes();
         return ppe;
     }
 
@@ -177,6 +178,9 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
         HTTPServerRequest serverRequestMock;
         HTTPClientRequest clientRequestMock;
 
+        DebugContext debugContextMock;
+        Cache cacheMock;
+
         public T getRequestCase() {
             return rc;
         }
@@ -185,7 +189,15 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
             return rc;
         }
 
-        Cache createCacheMock() {
+        public DebugContext getDebugContextMock() {
+            return debugContextMock;
+        }
+
+        public Cache getCacheMock() {
+            return cacheMock;
+        }
+
+        private Cache createCacheMock() {
             Cache retVal = createMock(Cache.class);
 
             // TODO: check on the context if any specific values are required.
@@ -197,7 +209,7 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
             return retVal;
         }
 
-        DebugContext createDebugContextMock() {
+        private DebugContext createDebugContextMock() {
             DebugContext retVal = createMock(DebugContext.class);
 
             // TODO: fill the context.
@@ -242,6 +254,9 @@ public abstract class RequestMockSupport<T extends RequestCase> extends EasyMock
                     throw new IllegalStateException("I/OException must never be thrown during the setup of a mock");
                 }
             }
+
+            this.debugContextMock = createDebugContextMock();
+            this.cacheMock = createCacheMock();
         }
 
         HTTPClientResponse createClientResponseMock() {

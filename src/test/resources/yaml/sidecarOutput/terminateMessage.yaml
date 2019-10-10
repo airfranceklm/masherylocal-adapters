@@ -1,0 +1,10 @@
+terminate:
+  message:
+  # No effect
+---
+terminate:
+  message: 301
+  # Wrong type, will be ignored.
+---
+terminate:
+  message: "Error"

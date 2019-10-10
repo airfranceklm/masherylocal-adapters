@@ -17,7 +17,7 @@ public class RequestCase {
     private EndpointData endpointData;
 
     private String name;
-    boolean preProcessor = true;
+    boolean preProcessorCase = true;
     //String inheritFrom; // TODO
 
     APIClientRequest apiClientRequest;
@@ -132,6 +132,10 @@ public class RequestCase {
 
     public TestScenario getTestScenario() {
         return testScenario;
+    }
+
+    public boolean isPreProcessorCase() {
+        return preProcessorCase;
     }
 
     /**
@@ -353,5 +357,9 @@ public class RequestCase {
             this.trafficManagerResponse = new TrafficManagerResponseData();
         }
         return this.trafficManagerResponse;
+    }
+
+    public void setPreProcessorCase(boolean setting) {
+        this.preProcessorCase = setting;
     }
 }

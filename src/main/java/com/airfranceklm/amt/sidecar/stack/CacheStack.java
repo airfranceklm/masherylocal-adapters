@@ -1,9 +1,7 @@
 package com.airfranceklm.amt.sidecar.stack;
 
-import com.airfranceklm.amt.sidecar.SidecarInput;
-import com.airfranceklm.amt.sidecar.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.*;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
-import com.mashery.trafficmanager.cache.Cache;
 import com.mashery.trafficmanager.cache.CacheException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,49 +14,100 @@ import java.io.IOException;
 public class CacheStack implements AFKLMSidecarStack {
     private static final Logger log = LoggerFactory.getLogger(CacheStack.class);
 
-    public CacheStack() {
+    CacheStack() {
     }
 
     @Override
-    public SidecarOutput invoke(AFKLMSidecarStackConfiguration cfg, SidecarInput input) throws IOException {
-        final String cacheKey = getCacheKey(input);
-        final Cache cache = ((CacheStackConfiguration)cfg).getCache();
+    public SidecarPreProcessorOutput invokeAtPreProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        if (cmd.getCache() == null || cmd.getInput() == null) {
+            return services.doNothingForPreProcessing();
+        }
+
+        CacheConfiguration mCfg = (CacheConfiguration)cfg;
+        String key = getCacheKey(mCfg, cmd.getInput());
 
         try {
-            return (SidecarOutput) cache.get(getClass().getClassLoader(), cacheKey);
-        } catch (CacheException e) {
-            // TODO: circuit-break logging errors.
-            log.error(String.format("Failed to retrieve key %s from cache: %s", cacheKey, e.getMessage()), e);
-            throw new IOException(e);
+            Object c = cmd.getCache().get(getClass().getClassLoader(), key);
+
+            if (c == null) {
+                return null;
+            } else {
+                if (c instanceof SidecarPreProcessorOutput) {
+                    return (SidecarPreProcessorOutput)c;
+                } else {
+                    log.error(String.format("Class collision for key %s", key));
+                    throw new IOException(String.format("Class collision: %s expected, but %s was found",
+                            SidecarPreProcessorOutput.class,
+                            c.getClass().getName()));
+                }
+            }
+        } catch (CacheException ex) {
+            throw new IOException(ex);
+        }
+    }
+
+    @Override
+    public SidecarPostProcessorOutput invokeAtPostProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        if (cmd.getCache() == null || cmd.getInput() == null) {
+            return services.doNothingForPostProcessing();
+        }
+
+        CacheConfiguration mCfg = (CacheConfiguration)cfg;
+        String key = getCacheKey(mCfg, cmd.getInput());
+
+        try {
+            Object c = cmd.getCache().get(getClass().getClassLoader(), key);
+
+            if (c == null) {
+                return null;
+            } else {
+                if (c instanceof SidecarPostProcessorOutput) {
+                    return (SidecarPostProcessorOutput)c;
+                } else {
+                    log.error(String.format("Class collision for key %s", key));
+                    throw new IOException(String.format("Class collision: %s expected, but %s was found",
+                            SidecarPostProcessorOutput.class,
+                            c.getClass().getName()));
+                }
+            }
+        } catch (CacheException ex) {
+            throw new IOException(ex);
         }
     }
 
     @Override
     public AFKLMSidecarStackConfiguration configureFrom(SidecarConfiguration cfg) {
-        return new CacheStackConfiguration(null);
-        // TODO: Carrying forward the cache is not possible in the current code structure
-        // It needs to be changed.
+        return new CacheConfiguration(cfg);
+
     }
 
-    private String getCacheKey(SidecarInput input) {
-        return String.format("afklm:cacheSack:%s", input.getPayloadChecksum());
-    }
+    static class CacheConfiguration implements AFKLMSidecarStackConfiguration {
+        private String serviceId;
+        private String endpointId;
 
-
-    class CacheStackConfiguration implements AFKLMSidecarStackConfiguration {
-        private Cache cache;
-
-        CacheStackConfiguration(Cache cache) {
-            this.cache = cache;
+        CacheConfiguration(SidecarConfiguration cfg) {
+            this.serviceId = cfg.getServiceId();
+            this.endpointId = cfg.getEndpointId();
         }
 
         @Override
         public boolean isValid() {
-            return false;
+            return serviceId != null && endpointId != null;
         }
 
-        Cache getCache() {
-            return cache;
+        public String getServiceId() {
+            return serviceId;
         }
+
+        public String getEndpointId() {
+            return endpointId;
+        }
+    }
+
+    private String getCacheKey(CacheConfiguration cfg, SidecarInput input) {
+        return String.format("afklm:cacheSack:%s>%s:%s",
+                cfg.getServiceId(),
+                cfg.getEndpointId(),
+                input.getPayloadChecksum());
     }
 }

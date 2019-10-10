@@ -3,6 +3,7 @@ package com.airfranceklm.amt.sidecar.stack;
 import com.airfranceklm.amt.sidecar.*;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.airfranceklm.amt.sidecar.config.SidecarSynchronicity;
+import com.airfranceklm.amt.sidecar.model.*;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -38,11 +39,31 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
     private Map<String, AWSLambdaHolder> invokers = new HashMap<>();
 
     @Override
+    public SidecarPreProcessorOutput invokeAtPreProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        String rVal = invoke(cfg, cmd.getInput());
+        if (rVal != null) {
+            return services.asPreProcessor(rVal);
+        } else {
+            return services.doNothingForPreProcessing();
+        }
+    }
+
+    @Override
+    public SidecarPostProcessorOutput invokeAtPostProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        String rVal = invoke(cfg, cmd.getInput());
+        if (rVal != null) {
+            return services.asPostProcessor(rVal);
+        } else {
+            return services.doNothingForPostProcessing();
+        }
+    }
+
+    @Override
     public AFKLMSidecarStackConfiguration configureFrom(SidecarConfiguration cfg) {
         return new AWSLambdaConfiguration(cfg.getStackParams(), cfg.getSidecarTimeout());
     }
 
-    public SidecarOutput invoke(AFKLMSidecarStackConfiguration cfg, SidecarInput input) throws IOException {
+    public String invoke(AFKLMSidecarStackConfiguration cfg, SidecarInput input) throws IOException {
         AWSLambdaConfiguration lambdaCfg = (AWSLambdaConfiguration)cfg;
 
         InvocationType type = InvocationType.Event;
@@ -53,7 +74,7 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
         InvokeRequest req = new InvokeRequest()
                 .withFunctionName(lambdaCfg.getFunctionARN())
                 .withInvocationType(type)
-                .withPayload(AFKLMSidecarProcessor.toJSON(input))
+                .withPayload(JsonHelper.toJSON(input))
                 .withSdkRequestTimeout((int)lambdaCfg.getTimeout());
 
         InvokeResult result = null;
@@ -72,12 +93,10 @@ public class AWSLambdaStack implements AFKLMSidecarStack {
         // all other errors.
         switch (result.getStatusCode()) {
             case 200:
-                final String lambdaRawValue = new String(result.getPayload().array(),
+                return new String(result.getPayload().array(),
                         StandardCharsets.UTF_8);
-
-                return AFKLMSidecarProcessor.toSidecarOutput(lambdaRawValue);
             case 202:
-                return new SidecarOutputImpl();
+                return null;
             default:
                 // This failure. An extended diagnostic context may be logged.
                 String msg = String.format("Failed to invoke function %s: returned error code %d (%s).",

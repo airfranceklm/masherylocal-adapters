@@ -1,10 +1,10 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import java.security.MessageDigest;
 import java.util.Date;
 import java.util.Objects;
 
-import static com.airfranceklm.amt.sidecar.SidecarInput.*;
+import static com.airfranceklm.amt.sidecar.model.SidecarInput.*;
 
 public class SidecarInputToken {
     private String bearerToken;

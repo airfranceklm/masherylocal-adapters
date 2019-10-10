@@ -1,0 +1,10 @@
+terminate:
+  payload:
+  # No effect
+---
+terminate:
+  payload: 301
+  # Wrong type; will be ignored.
+---
+terminate:
+  payload: "Payload"

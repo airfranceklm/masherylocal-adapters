@@ -1,0 +1,14 @@
+terminate:
+  headers:
+  # No effect
+---
+terminate:
+  headers:
+    a: B
+    b: C
+---
+termiante:
+  headers:
+    a: B
+    b: 345
+  # Wrong type; will be ignored.

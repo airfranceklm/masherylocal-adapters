@@ -1,7 +1,7 @@
 package com.airfranceklm.amt.sidecar.input;
 
-import com.airfranceklm.amt.sidecar.SidecarInput;
-import com.airfranceklm.amt.sidecar.SidecarInvocationData;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarInvocationData;
 import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilterGroup;
 import com.airfranceklm.amt.sidecar.filters.SidecarScopeFilteringResult;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;

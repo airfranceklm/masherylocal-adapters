@@ -1,11 +1,11 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.airfranceklm.amt.sidecar.SidecarInput.updateChecksumOfMap;
-import static com.airfranceklm.amt.sidecar.SidecarInput.updateNullable;
+import static com.airfranceklm.amt.sidecar.model.SidecarInput.updateChecksumOfMap;
+import static com.airfranceklm.amt.sidecar.model.SidecarInput.updateNullable;
 
 public class SidecarInputOperation {
     private String httpVerb;

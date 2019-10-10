@@ -1,6 +1,5 @@
 package com.airfranceklm.amt.sidecar;
 
-import com.airfranceklm.amt.testsupport.dsl.APIOriginResponseDSL;
 import com.airfranceklm.amt.testsupport.dsl.DSL;
 
 import java.util.ArrayList;
@@ -10,13 +9,14 @@ import java.util.function.Consumer;
 public class SidecarTestDSL extends DSL<SidecarRequestCase> {
 
     private List<Consumer<SidecarInputDSL>> inputConfigurers;
-    private List<Consumer<SidecarOutputDSL>> outputConfigurers;
+    private List<Consumer<SidecarPreProcessorDSL>> outputConfigurers;
 
     private List<Consumer<SidecarInputDSL>> preflightInputConfigurers;
-    private List<Consumer<SidecarOutputDSL>> preflightOutputConfigurers;
+    private List<Consumer<SidecarPreProcessorDSL>> preflightOutputConfigurers;
 
     private String throwPreflightException;
     private String throwSidecarException;
+    private boolean isPreProcessorCase = true;
 
     @Override
     protected SidecarRequestCase create() {
@@ -46,6 +46,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
             other.preflightOutputConfigurers.addAll(preflightOutputConfigurers);
         }
 
+        other.isPreProcessorCase = this.isPreProcessorCase;
         other.throwSidecarException = this.throwSidecarException;
         other.throwPreflightException = this.throwPreflightException;
     }
@@ -53,6 +54,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
     @Override
     public SidecarRequestCase build() {
         final SidecarRequestCase retVal = super.build();
+        retVal.setPreProcessorCase(this.isPreProcessorCase);
 
         retVal.preflightException = this.throwPreflightException;
         retVal.sidecarException = this.throwSidecarException;
@@ -66,7 +68,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
         }
 
         if (outputConfigurers != null) {
-            SidecarOutputDSL dsl = new SidecarOutputDSL(retVal.getOrCreateSidecarOutput());
+            SidecarPreProcessorDSL dsl = new SidecarPreProcessorDSL(retVal.getOrCreateSidecarPreProcessorOutput());
             outputConfigurers.forEach(c -> c.accept(dsl));
         }
 
@@ -79,7 +81,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
         }
 
         if (preflightOutputConfigurers != null) {
-            SidecarOutputDSL dsl = new SidecarOutputDSL(retVal.getOrCreatePreflightOutput());
+            SidecarPreProcessorDSL dsl = new SidecarPreProcessorDSL(retVal.getOrCreatePreflightOutput());
             preflightOutputConfigurers.forEach(c -> c.accept(dsl));
         }
 
@@ -93,6 +95,16 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
         return retVal;
     }
 
+    public SidecarTestDSL preProcessorCase() {
+        this.isPreProcessorCase = true;
+        return this;
+    }
+
+    public SidecarTestDSL postProcessorCase() {
+        this.isPreProcessorCase = false;
+        return this;
+    }
+
     public void configureSidecarInput(Consumer<SidecarInputDSL> c) {
         if (inputConfigurers == null) {
             inputConfigurers = new ArrayList<>();
@@ -100,7 +112,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
         inputConfigurers.add(c);
     }
 
-    public void configureOutput(Consumer<SidecarOutputDSL> c) {
+    public void configureOutput(Consumer<SidecarPreProcessorDSL> c) {
         if (outputConfigurers == null) {
             outputConfigurers = new ArrayList<>();
         }
@@ -114,7 +126,7 @@ public class SidecarTestDSL extends DSL<SidecarRequestCase> {
         preflightInputConfigurers.add(c);
     }
 
-    public void configurePreflightOutput(Consumer<SidecarOutputDSL> c) {
+    public void configurePreflightOutput(Consumer<SidecarPreProcessorDSL> c) {
         if (preflightOutputConfigurers == null) {
             preflightOutputConfigurers = new ArrayList<>();
         }

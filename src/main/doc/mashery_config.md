@@ -100,7 +100,7 @@ data elements appear in the input data structure.
 | Application EAVs | *See configuration below* | Yes | Yes | Yes |
 | Token grant type | grantType | Yes | Yes | Yes |
 | Token scope | `tokenScope` | Yes | Yes | Yes |
-| User token (a.k.a. user context) | `token` | No | Yes | Yes |
+| Token scope, user context, grant type and expiry date | `token` | No | Yes | Yes |
 | Full token (including bearer token) | `+token` | No | Yes | Yes |
 | Mashery method | `method` | No | Yes; not implemented. | Yes; not implemented. |
 | Routing | `routing` | Yes | Yes | *Via relay* |

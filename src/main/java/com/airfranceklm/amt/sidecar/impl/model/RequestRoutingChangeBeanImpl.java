@@ -1,11 +1,15 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.impl.model;
+
+import com.airfranceklm.amt.sidecar.model.RequestRoutingChangeBean;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Objects;
 
 /**
  * Indication of the change to the routing.
  */
-public class SidecarOutputRouting {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class RequestRoutingChangeBeanImpl implements RequestRoutingChangeBean {
     private String host;
     private String file;
     private String httpVerb;
@@ -57,7 +61,7 @@ public class SidecarOutputRouting {
      * Returns true if routing seeks ot override host, file, or port of the outgoing URI.
      * @return true if override is full or partial, false if the output URI doesn't need to change.
      */
-    boolean outboundURINeedsChanging() {
+    public boolean outboundURINeedsChanging() {
         return this.host != null || this.file != null || this.port > 0;
     }
 
@@ -65,7 +69,7 @@ public class SidecarOutputRouting {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SidecarOutputRouting that = (SidecarOutputRouting) o;
+        RequestRoutingChangeBeanImpl that = (RequestRoutingChangeBeanImpl) o;
         return Objects.equals(host, that.host) &&
                 Objects.equals(file, that.file) &&
                 Objects.equals(httpVerb, that.httpVerb) &&

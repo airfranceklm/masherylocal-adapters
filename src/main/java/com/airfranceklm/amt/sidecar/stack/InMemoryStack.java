@@ -2,8 +2,8 @@ package com.airfranceklm.amt.sidecar.stack;
 
 import com.airfranceklm.amt.sidecar.*;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
+import com.airfranceklm.amt.sidecar.model.*;
 
-import javax.imageio.ImageReader;
 import java.io.IOException;
 import java.util.*;
 
@@ -13,29 +13,50 @@ import java.util.*;
  * - where the sidecar needs to respond only to fixed set of events.
  */
 public class InMemoryStack implements AFKLMSidecarStack {
-    private static final SidecarOutput doNothing = new SidecarOutputImpl();
-    private Map<MasheryPreprocessorPointReference, Map<String,SidecarOutputHolder>> memoryBase = new HashMap<>();
+
+    private Map<MasheryPreprocessorPointReference, Map<String,SidecarOutputHolder<SidecarPreProcessorOutput>>> preMemoryBase = new HashMap<>();
+    private Map<MasheryPreprocessorPointReference, Map<String,SidecarOutputHolder<SidecarPostProcessorOutput>>> postMemoryBase = new HashMap<>();
 
     @Override
-    public SidecarOutput invoke(AFKLMSidecarStackConfiguration cfg, SidecarInput input) throws IOException {
+    public SidecarPreProcessorOutput invokeAtPreProcessor(AFKLMSidecarStackConfiguration cfg,
+                                                          SidecarInvocationData cmd,
+                                                          ProcessorServices services) throws IOException {
         ConfigurationImpl privCfg = (ConfigurationImpl)cfg;
 
-        Map<String,SidecarOutputHolder> target = memoryBase.get(privCfg.ref);
+        Map<String,SidecarOutputHolder<SidecarPreProcessorOutput>> target = preMemoryBase.get(privCfg.ref);
         if (target != null) {
-            SidecarOutputHolder h = target.get(input.getPayloadChecksum());
+            SidecarOutputHolder<SidecarPreProcessorOutput> h = target.get(cmd.getInput().getPayloadChecksum());
             if (h != null) {
                 return h.output;
             }
         }
 
-        return doNothing;
+        return services.doNothingForPreProcessing();
     }
 
+    @Override
+    public SidecarPostProcessorOutput invokeAtPostProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        ConfigurationImpl privCfg = (ConfigurationImpl)cfg;
 
+        Map<String,SidecarOutputHolder<SidecarPostProcessorOutput>> target = postMemoryBase.get(privCfg.ref);
+        if (target != null) {
+            SidecarOutputHolder<SidecarPostProcessorOutput> h = target.get(cmd.getInput().getPayloadChecksum());
+            if (h != null) {
+                return h.output;
+            }
+        }
 
-    public void add(MasheryPreprocessorPointReference ref, String hash, SidecarOutput output, String declaredIn) {
-        Map<String, SidecarOutputHolder> target = memoryBase.computeIfAbsent(ref, k -> new HashMap<>());
-        target.put(hash, new SidecarOutputHolder(output, declaredIn));
+        return services.doNothingForPostProcessing();
+    }
+
+    public void add(MasheryPreprocessorPointReference ref, String hash, SidecarPreProcessorOutput output, String declaredIn) {
+        Map<String, SidecarOutputHolder<SidecarPreProcessorOutput>> target = preMemoryBase.computeIfAbsent(ref, k -> new HashMap<>());
+        target.put(hash, new SidecarOutputHolder<>(output, declaredIn));
+    }
+
+    public void add(MasheryPreprocessorPointReference ref, String hash, SidecarPostProcessorOutput output, String declaredIn) {
+        Map<String, SidecarOutputHolder<SidecarPostProcessorOutput>> target = postMemoryBase.computeIfAbsent(ref, k -> new HashMap<>());
+        target.put(hash, new SidecarOutputHolder<>(output, declaredIn));
     }
 
     @Override
@@ -50,7 +71,7 @@ public class InMemoryStack implements AFKLMSidecarStack {
      */
     public Map<MasheryPreprocessorPointReference, List<String>> getDeclaredIn(String path) {
         Map<MasheryPreprocessorPointReference,List<String>> retVal = new HashMap<>();
-        memoryBase.forEach((ref, storedRecs) -> {
+        preMemoryBase.forEach((ref, storedRecs) -> {
             storedRecs.forEach((checksum, obj) -> {
                 if (Objects.equals(obj.declaredIn, path)) {
                     List<String> l = retVal.computeIfAbsent(ref, r -> new ArrayList<>());
@@ -63,11 +84,19 @@ public class InMemoryStack implements AFKLMSidecarStack {
     }
 
     public void forget(MasheryPreprocessorPointReference ref, String checksum) {
-        Map<String,SidecarOutputHolder> m = memoryBase.get(ref);
-        if (m != null) {
-            m.remove(checksum);
-            if (m.size() == 0) {
-                memoryBase.remove(ref);
+        Map<String,SidecarOutputHolder<SidecarPreProcessorOutput>> mPre = preMemoryBase.get(ref);
+        if (mPre != null) {
+            mPre.remove(checksum);
+            if (mPre.size() == 0) {
+                preMemoryBase.remove(ref);
+            }
+        }
+
+        Map<String,SidecarOutputHolder<SidecarPostProcessorOutput>> mPost = postMemoryBase.get(ref);
+        if (mPost != null) {
+            mPost.remove(checksum);
+            if (mPost.size() == 0) {
+                postMemoryBase.remove(ref);
             }
         }
     }
@@ -85,11 +114,11 @@ public class InMemoryStack implements AFKLMSidecarStack {
         }
     }
 
-    static class SidecarOutputHolder {
-        SidecarOutput output;
+    static class SidecarOutputHolder<T> {
+        T output;
         String declaredIn;
 
-        SidecarOutputHolder(SidecarOutput output, String declaredIn) {
+        SidecarOutputHolder(T output, String declaredIn) {
             this.output = output;
             this.declaredIn = declaredIn;
         }

@@ -1,4 +1,4 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import com.airfranceklm.amt.sidecar.config.SidecarInputPoint;
 import com.airfranceklm.amt.sidecar.config.SidecarSynchronicity;
@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.function.Consumer;
 
 
 /**
@@ -21,6 +22,7 @@ public class SidecarInput {
     private static  final byte[] LEFT_CURLY_BRACE = stdOf("{");
     private static final byte[] RIGHT_CURLY_BRACE = stdOf("}");
     private static final byte[] GT_THEN = stdOf(">");
+    private static final byte[] EMPTY_BYTES = {};
 
     private String masheryMessageId;
 
@@ -65,10 +67,12 @@ public class SidecarInput {
         this.masheryMessageId = masheryMessageId;
     }
 
+
     /**
      * Returns the sha256 checksum of the fields, excluding the message Id.
      * @return Sha-256 string representing the checksum of this input object.
      */
+    @JsonIgnore
     public String getPayloadChecksum() {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -128,6 +132,7 @@ public class SidecarInput {
                 response.updateChecksum(md);
             }
 
+            // TODO: change to hex encoder.
             return Base64.getEncoder().encodeToString(md.digest());
 
         } catch (NoSuchAlgorithmException e) {
@@ -181,6 +186,9 @@ public class SidecarInput {
     }
 
     static byte[] stdOf(String mapName) {
+        if (mapName == null) {
+            return EMPTY_BYTES;
+        }
         return mapName.getBytes();
     }
 
@@ -204,7 +212,7 @@ public class SidecarInput {
         packageKeyEAVs.put(eavName, eavValue);
     }
 
-    void addParam(String paramName, String paramValue) {
+    public void addParam(String paramName, String paramValue) {
         ensureParamsMap();
         params.put(paramName, paramValue);
     }
@@ -469,5 +477,47 @@ public class SidecarInput {
             request = null;
         }
         // TODO: This may need to be expanded on other objects as well.
+    }
+
+    public String explainDifferenceFrom(SidecarInput another) {
+        StringBuilder sb = new StringBuilder();
+
+        reportDifference(sb, "masheryMessageId", another, SidecarInput::getMasheryMessageId);
+        reportDifference(sb, "point", another, SidecarInput::getPoint);
+        reportDifference(sb, "synchronicity", another, SidecarInput::getSynchronicity);
+        reportDifference(sb, "packageKey", another, SidecarInput::getPackageKey);
+        reportDifference(sb, "serviceId", another, SidecarInput::getServiceId);
+        reportDifference(sb, "endpointId", another, SidecarInput::getEndpointId);
+        reportDifference(sb, "params", another, SidecarInput::getParams);
+        reportDifference(sb, "request", another, SidecarInput::getRequest);
+        reportDifference(sb, "response", another, SidecarInput::getResponse);
+        reportDifference(sb, "eavs", another, SidecarInput::getEavs);
+        reportDifference(sb, "packageKeyEAVs", another, SidecarInput::getPackageKeyEAVs);
+        reportDifference(sb, "operation", another, SidecarInput::getOperation);
+        reportDifference(sb, "token", another, SidecarInput::getToken);
+        reportDifference(sb, "routing", another, SidecarInput::getRouting);
+        reportDifference(sb, "remoteAddress", another, SidecarInput::getRemoteAddress);
+
+        return sb.toString();
+    }
+
+    private void reportDifference(StringBuilder sb, String key, SidecarInput rightInput, ValueExtractor extractor) {
+        Object left = extractor.accept(this);
+        Object right = extractor.accept(rightInput);
+
+        if (left == right) {
+            return;
+        }
+
+        if (!Objects.equals(left, right)) {
+            sb.append(key).append(":\n")
+                    .append("L:> ").append(left).append("\n")
+                    .append("R:> ").append(right).append("\n");
+        }
+    }
+
+    @FunctionalInterface
+    interface ValueExtractor {
+        Object accept(SidecarInput si);
     }
 }

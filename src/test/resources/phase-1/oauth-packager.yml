@@ -144,9 +144,10 @@ OAuth Packager:
             grantType: client_credentials
 
         output:
-          addHeaders:
-            x-afklm-allow: PNR,LastName,Email
-            x-afklm-security-logging: FULL
+          modify:
+            addHeaders:
+              x-afklm-allow: PNR,LastName,Email
+              x-afklm-security-logging: FULL
 
       # This is what needs to be changed
       expect api origin request modifications:
@@ -193,8 +194,9 @@ OAuth Packager:
             grantType: client_credentials
 
         output:
-          code: 443
-          message: Operation not permitted for your plan
+          terminate:
+            code: 443
+            message: Operation not permitted for your plan
 
       expect traffic manager:
         set complete: true

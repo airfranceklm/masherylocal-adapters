@@ -1,5 +1,8 @@
 package com.airfranceklm.amt.sidecar;
 
+import com.airfranceklm.amt.sidecar.model.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPreProcessorOutput;
+
 import java.io.Serializable;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -10,12 +13,12 @@ public class SidecarOutputCache implements Serializable {
 
     private Date expiry;
     private Date storeExpiry;
-    private SidecarOutput value;
+    private SidecarPreProcessorOutput value;
 
     SidecarOutputCache() {
     }
 
-    public SidecarOutputCache(SidecarOutput value, TimeUnit unit, int retention) {
+    public SidecarOutputCache(SidecarPreProcessorOutput value, TimeUnit unit, int retention) {
         this.expiry = value.getUnchangedUntil();
         this.storeExpiry = new Date();
         this.value = value;
@@ -31,7 +34,7 @@ public class SidecarOutputCache implements Serializable {
         return storeExpiry;
     }
 
-    public SidecarOutput getValue() {
+    public SidecarPreProcessorOutput getValue() {
         return value;
     }
 

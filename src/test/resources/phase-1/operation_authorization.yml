@@ -261,8 +261,9 @@ Operation Authorization:
             scope: role1 role2 role2
 
         output:
-          code: 455
-          message: Access denies do to an ACL on the resource
+          terminate:
+            code: 455
+            message: Access denies do to an ACL on the resource
 
       expect traffic manager:
         set complete: true

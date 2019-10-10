@@ -1,12 +1,11 @@
 package com.airfranceklm.amt.sidecar.input;
 
-import com.airfranceklm.amt.sidecar.SidecarInput;
-import com.airfranceklm.amt.sidecar.SidecarInputHTTPMessage;
-import com.airfranceklm.amt.sidecar.SidecarInputHTTPResponseMessage;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarInputHTTPMessage;
+import com.airfranceklm.amt.sidecar.model.SidecarInputHTTPResponseMessage;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.mashery.http.HTTPHeaders;
 import com.mashery.http.client.HTTPClientResponse;
-import com.mashery.http.server.HTTPServerRequest;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.model.core.ApplicationRequest;
 

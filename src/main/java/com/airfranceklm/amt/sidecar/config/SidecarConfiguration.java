@@ -1,7 +1,8 @@
 package com.airfranceklm.amt.sidecar.config;
 
-import com.airfranceklm.amt.sidecar.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarOutput;
 import com.airfranceklm.amt.sidecar.input.SidecarInputBuilderImpl;
+import com.airfranceklm.amt.sidecar.model.SidecarPreProcessorOutput;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -60,7 +61,7 @@ public class SidecarConfiguration {
 
     private String stack;
 
-    private SidecarOutput staticModification;
+    private SidecarPreProcessorOutput staticModification;
 
     private int errors = 0;
 
@@ -440,11 +441,11 @@ public class SidecarConfiguration {
         return sidecarTimeout;
     }
 
-    public SidecarOutput getStaticModification() {
+    public SidecarPreProcessorOutput getStaticModification() {
         return staticModification;
     }
 
-    void setStaticModification(SidecarOutput staticModification) {
+    void setStaticModification(SidecarPreProcessorOutput staticModification) {
         this.staticModification = staticModification;
     }
 

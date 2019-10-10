@@ -112,8 +112,9 @@ Instant massive logout:
             scope: role1 role2 role2
 
         output:
-          code: 456
-          message: Service is closed for maintenance
+          terminate:
+            code: 456
+            message: Service is closed for maintenance
 
       expect traffic manager:
         set complete: true

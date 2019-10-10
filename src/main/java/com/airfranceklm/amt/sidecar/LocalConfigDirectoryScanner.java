@@ -3,6 +3,10 @@ package com.airfranceklm.amt.sidecar;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 import com.airfranceklm.amt.sidecar.config.SidecarInputPoint;
 import com.airfranceklm.amt.sidecar.config.YamlConfigurationBuilder;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPostProcessorOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPreProcessorOutput;
 import com.airfranceklm.amt.sidecar.stack.InMemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,21 +158,16 @@ class LocalConfigDirectoryScanner {
     }
 
     private void loadSingleInMemoryMap(MasheryPreprocessorPointReference ref, String declaredInFile, Map<String, Object> endpointYaml, Map<MasheryPreprocessorPointReference, List<String>> currentlyDeclared, InMemoryStack stack) {
-        String yamlKey = "pre-processor";
-        if (ref.getPoint() == SidecarInputPoint.PostProcessor) {
-            yamlKey = "post-processor";
-        }
 
-        forDefinedObjectMap(endpointYaml, yamlKey, (preYaml) -> {
-
+        forDefinedObjectMap(endpointYaml, "pre-processor", (preProcYaml) -> {
             iterateListOfObjectMaps(endpointYaml, (inOut) -> {
                 SidecarInput input = parseDefinedObjectMap(inOut,
                         "input",
                         YamlConfigurationBuilder::buildSidecarInputFromYAML);
 
-                SidecarOutput output = parseDefinedObjectMap(inOut,
-                        "out",
-                        YamlConfigurationBuilder::buildSidecarOutputFromYAML);
+                SidecarPreProcessorOutput output = parseDefinedObjectMap(inOut,
+                        "output",
+                        YamlConfigurationBuilder::buildSidecarPreProcessorOutputFromYAML);
 
                 if (input != null && output != null) {
                     final String checksum = input.getPayloadChecksum();
@@ -181,6 +180,29 @@ class LocalConfigDirectoryScanner {
                 }
             });
         });
+
+        forDefinedObjectMap(endpointYaml, "post-processor", (preProcYaml) -> {
+            iterateListOfObjectMaps(endpointYaml, (inOut) -> {
+                SidecarInput input = parseDefinedObjectMap(inOut,
+                        "input",
+                        YamlConfigurationBuilder::buildSidecarInputFromYAML);
+
+                SidecarPostProcessorOutput output = parseDefinedObjectMap(inOut,
+                        "output",
+                        YamlConfigurationBuilder::buildSidecarPostProcessorOutputFromYAML);
+
+                if (input != null && output != null) {
+                    final String checksum = input.getPayloadChecksum();
+                    stack.add(ref, checksum, output, declaredInFile);
+
+                    List<String> l = currentlyDeclared.get(ref);
+                    if (l != null) {
+                        l.remove(checksum);
+                    }
+                }
+            });
+        });
+
     }
 
     private void loadServicesConfiguration(Map<String, Object> yaml, String originalFile) {

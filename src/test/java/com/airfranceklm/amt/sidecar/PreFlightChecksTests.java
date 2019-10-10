@@ -60,7 +60,7 @@ public class PreFlightChecksTests extends AFKLMSidecarMockSupport {
     public void testPreflightCanCancelProcessing() {
         SidecarTestDSL dsl = baseDSL.duplicate();
         dsl.configurePreflightOutput(cl -> {
-            cl.withCode(403);
+            cl.terminate().withCode(403);
         });
         dsl.expectCurtailingWith(403, AFKLMSidecarProcessor.MSG_SERVICE_CANNOT_BE_PROVIDED);
         // Is this the right message?

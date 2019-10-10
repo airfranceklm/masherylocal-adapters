@@ -1,8 +1,7 @@
 package com.airfranceklm.amt.testsupport;
 
-import com.airfranceklm.amt.sidecar.AFKLMSidecarProcessor;
+import com.airfranceklm.amt.sidecar.JsonHelper;
 
-import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
 
@@ -43,7 +42,7 @@ public class AuthorizationContextData extends RequestCaseDatum {
         forDefinedString(yaml, "scope", this::setScope);
         forDefinedString(yaml, "user context", this::setUserContext);
         forDefinedString(yaml, "grant type", this::setGrantType);
-        forDefinedString(yaml, "expires", (v) -> this.expires = AFKLMSidecarProcessor.parseJSONDate(v));
+        forDefinedString(yaml, "expires", (v) -> this.expires = JsonHelper.parseJSONDate(v));
     }
 
     AuthorizationContextData(Map<String, Object> yaml) {

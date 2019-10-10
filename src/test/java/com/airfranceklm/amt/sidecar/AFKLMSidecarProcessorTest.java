@@ -134,11 +134,7 @@ public class AFKLMSidecarProcessorTest extends AFKLMSidecarMockSupport {
 
     }
 
-    @Test
-    public void testParsing() throws Exception {
-        MarshallableSidecarOutput lso = new ObjectMapper().readValue("{\"json\":\"a\"}", MarshallableSidecarOutput.class);
-        System.out.println(lso.getJson());
-    }
+
 
     @Test
     public void testTokenExpansion() {

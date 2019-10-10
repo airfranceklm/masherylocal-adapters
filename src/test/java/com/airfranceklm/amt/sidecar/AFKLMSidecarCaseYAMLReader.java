@@ -47,7 +47,11 @@ public class AFKLMSidecarCaseYAMLReader extends RequestCaseYAMLReader<SidecarReq
             });
 
             forDefinedObjectMap(sidecarYaml, "output", (outputYaml) -> {
-                rc.sidecarOutput = buildSidecarOutputFromYAML(outputYaml);
+                if (rc.isPreProcessorCase()) {
+                    rc.preProcessorOutput = buildSidecarPreProcessorOutputFromYAML(outputYaml);
+                } else {
+                    rc.postProcessorOutput = buildSidecarPostProcessorOutputFromYAML(outputYaml);
+                }
             });
 
 
@@ -63,7 +67,7 @@ public class AFKLMSidecarCaseYAMLReader extends RequestCaseYAMLReader<SidecarReq
             });
 
             forDefinedObjectMap(sidecarYaml, "output", (outputYaml) -> {
-                rc.preflightOutput = buildSidecarOutputFromYAML(outputYaml);
+                rc.preflightOutput = buildSidecarPreProcessorOutputFromYAML(outputYaml);
             });
         });
 

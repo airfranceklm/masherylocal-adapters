@@ -57,8 +57,9 @@ Custom JWT Validation Scenarios:
             Public_Key: b
 
         output:
-          code: 403
-          message: "Lambda 403"
+          terminate:
+            code: 403
+            message: "Lambda 403"
 
 
       expect traffic manager:

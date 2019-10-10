@@ -72,7 +72,7 @@ Below you find the complete JSON schema and explanation about supported elements
       "uri" : "http://new-uri:432455/travel/custom/backend",
       "port" : 3455
     },
-    "completed": false
+    "completeWithCode": 201
   },
   "relay" : {
     "cache-key" : "324kfknkdjkjk5j5",
@@ -130,8 +130,8 @@ to the destination. The fields in this object are interpreted as follows:
    
    The motivation to have this supported is to alleviate the sidecar developers from performing a 
    boilerplate operations of encoding JSON objects into correct payload.
-- `completed` indicates that the payload specified by the response has to be sent to
-  the API client, rather than to the API origin.   
+- `completeWithCode` indicates that the payload specified by the response has to be sent to
+  the API client, rather than to the API origin, and the HTTP response code is indicated.   
    
 ## The `changeRoute` element
 

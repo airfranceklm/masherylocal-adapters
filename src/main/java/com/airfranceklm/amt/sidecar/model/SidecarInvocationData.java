@@ -1,4 +1,4 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;
 import com.mashery.trafficmanager.cache.Cache;
@@ -72,7 +72,7 @@ public class SidecarInvocationData {
      *
      * @return String representing a combination of serviceId, endpointId, and the payload checksum.
      */
-    String getCacheKey() {
+    public String getCacheKey() {
         return String.format("idempotent::%s_%s_%s", serviceId, endpointId, input == null ? "null" : input.getPayloadChecksum());
     }
 
@@ -90,5 +90,23 @@ public class SidecarInvocationData {
 
     public void logEntry(String key, Serializable message) {
         this.debugCtx.logEntry(key, message);
+    }
+
+    public DebugContext getDebugContext() {
+        return debugCtx;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n")
+                .append(">serviceId=").append(serviceId).append("\n")
+                .append(">endpointId=").append(endpointId).append("\n")
+                .append(">idempotentAware=").append(idempotentAware).append("\n")
+                .append(">stack=").append(stack).append("\n")
+                .append(">stackConfiguration=").append(stackConfiguration).append("\n")
+                .append(">input=").append(input).append("\n");
+
+        return sb.toString();
     }
 }

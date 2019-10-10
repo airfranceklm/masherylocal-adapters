@@ -1,0 +1,10 @@
+terminate:
+  code:
+  # No effect
+---
+terminate:
+  code: 301
+---
+terminate:
+  code: "301"
+  # Wrong type; will be ignored.

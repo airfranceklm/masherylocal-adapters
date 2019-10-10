@@ -1,0 +1,10 @@
+modify:
+  completeWithCode:
+    # No effect
+---
+modify:
+  completeWithCode: true
+  # Wrong type
+---
+modify:
+  completeWithCode: 202

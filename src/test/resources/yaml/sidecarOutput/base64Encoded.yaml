@@ -1,0 +1,10 @@
+modify:
+  base64Encoded:
+    # No effect
+---
+modify:
+  base64Encoded: 301
+    # Wrong type; will be ignored.
+---
+modify:
+  base64Encoded: true

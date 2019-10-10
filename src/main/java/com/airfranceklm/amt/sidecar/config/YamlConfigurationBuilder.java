@@ -1,8 +1,7 @@
 package com.airfranceklm.amt.sidecar.config;
 
-import com.airfranceklm.amt.sidecar.*;
-import com.fasterxml.jackson.core.TreeNode;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.airfranceklm.amt.sidecar.impl.model.*;
+import com.airfranceklm.amt.sidecar.model.*;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
@@ -17,7 +16,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.airfranceklm.amt.sidecar.AFKLMSidecarProcessor.parseJSONDate;
+import static com.airfranceklm.amt.sidecar.JsonHelper.parseJSONDate;
 import static com.airfranceklm.amt.sidecar.config.ConfigRequirement.Included;
 import static com.airfranceklm.amt.sidecar.config.ConfigRequirement.Required;
 import static com.airfranceklm.amt.sidecar.config.MasheryConfigSidecarConfigurationBuilder.*;
@@ -175,7 +174,7 @@ public class YamlConfigurationBuilder {
         });
 
         forDefinedObjectMap(cfg, "staticModification", (rMap) -> {
-            retVal.setStaticModification(buildSidecarOutputFromYAML(rMap));
+            retVal.setStaticModification(buildSidecarPreProcessorOutputFromYAML(rMap));
         });
 
 
@@ -372,14 +371,26 @@ public class YamlConfigurationBuilder {
         }
     }
 
-    public static SidecarOutput buildSidecarOutputFromYAML(Map<String, Object> sidecarOutputYaml) {
+    public static SidecarPreProcessorOutputImpl buildSidecarPreProcessorOutputFromYAML(Map<String, Object> sidecarOutputYaml) {
 
         if (sidecarOutputYaml != null) {
-            SidecarOutputImpl retVal = new SidecarOutputImpl();
-            forDefinedInteger(sidecarOutputYaml, "code", retVal::setCode);
-            forDefinedString(sidecarOutputYaml, "payload", retVal::setPayload);
-            forDefinedStringList(sidecarOutputYaml, "dropHeaders", retVal::setDropHeaders);
-            forDefinedStringMap(sidecarOutputYaml, "addHeaders", retVal::setAddHeaders);
+            SidecarPreProcessorOutputImpl retVal = new SidecarPreProcessorOutputImpl();
+
+            forDefinedObjectMap(sidecarOutputYaml, "modify", (modifyYaml) -> {
+                RequestModificationCommandImpl mod = new RequestModificationCommandImpl();
+
+                // Common part: header and payload
+                buildHeaderModifications(modifyYaml, mod);
+                buildPayloadCarrier(modifyYaml, mod);
+
+                // Specific part: change route and the possibility to terminate.
+                forDefinedObjectMap(modifyYaml, "changeRoute", (m) -> mod.setChangeRoute(buildOutputRoutingFromYaml(m)));
+                forDefinedInteger(modifyYaml, "completeWithCode", mod::setCompleteWithCode);
+
+                if (!mod.containsNullsOnly()) {
+                    retVal.setModify(mod);
+                }
+            });
 
             forDefinedString(sidecarOutputYaml, "unchangedUntil", (str) -> {
                 Matcher m = jsonPattern.matcher(str);
@@ -388,11 +399,12 @@ public class YamlConfigurationBuilder {
                 }
             });
 
-            forDefinedObjectMap(sidecarOutputYaml, "changeRoute", (m) -> retVal.setChangeRoute(buildOutputRoutingFromYaml(m)));
             forDefinedObjectMap(sidecarOutputYaml, "relayParams", retVal::setRelayParams);
 
-            forDefinedString(sidecarOutputYaml, "message", retVal::setMessage);
-            forDefinedObjectMap(sidecarOutputYaml, "json", retVal::setJSONPayload);
+            forDefinedObjectMap(sidecarOutputYaml, "terminate", (terminateYaml) -> {
+                buildTerminateCommand(retVal, terminateYaml);
+            });
+
 
             return retVal;
         } else {
@@ -400,12 +412,75 @@ public class YamlConfigurationBuilder {
         }
     }
 
-    private static SidecarOutputRouting buildOutputRoutingFromYaml(Map<String, Object> yaml) {
+    public static SidecarPostProcessorOutputImpl buildSidecarPostProcessorOutputFromYAML(Map<String, Object> sidecarOutputYaml) {
+
+        if (sidecarOutputYaml != null) {
+            SidecarPostProcessorOutputImpl retVal = new SidecarPostProcessorOutputImpl();
+
+            forDefinedObjectMap(sidecarOutputYaml, "modify", (modifyYaml) -> {
+                ResponseModificationCommandImpl mod = new ResponseModificationCommandImpl();
+
+                // Common part: header and payload
+                buildHeaderModifications(modifyYaml, mod);
+                buildPayloadCarrier(modifyYaml, mod);
+
+                // Specific part: code
+                forDefinedInteger(modifyYaml, "code", mod::setCode);
+
+                if (!mod.containsOnlyNulls()) {
+                    retVal.setModify(mod);
+                }
+            });
+
+            forDefinedString(sidecarOutputYaml, "unchangedUntil", (str) -> {
+                Matcher m = jsonPattern.matcher(str);
+                if (m.matches()) {
+                    retVal.setUnchangedUntil(parseJSONDate(str));
+                }
+            });
+
+            forDefinedObjectMap(sidecarOutputYaml, "terminate", (terminateYaml) -> {
+                buildTerminateCommand(retVal, terminateYaml);
+            });
+
+
+            return retVal;
+        } else {
+            return null;
+        }
+    }
+
+    private static void buildHeaderModifications(Map<String, Object> modifyYaml, CallModificationCommandImpl mod) {
+        forDefinedStringMap(modifyYaml, "addHeaders", mod::setAddHeaders);
+        forDefinedStringList(modifyYaml, "dropHeaders", mod::setDropHeaders);
+    }
+
+    private static void buildTerminateCommand(AbstractSidecarOutputImpl retVal, Map<String, Object> terminateYaml) {
+        SidecarOutputTerminationCommandImpl cmd = new SidecarOutputTerminationCommandImpl();
+
+        forDefinedInteger(terminateYaml, "code", cmd::setCode);
+        forDefinedString(terminateYaml, "message", cmd::setMessage);
+        forDefinedStringMap(terminateYaml, "headers", cmd::setHeaders);
+
+        buildPayloadCarrier(terminateYaml, cmd);
+
+        if (!cmd.containsOnlyNulls()) {
+            retVal.setTerminate(cmd);
+        }
+    }
+
+    private static void buildPayloadCarrier(Map<String, Object> modifyYaml, PayloadCarrierImpl mod) {
+        forDefinedString(modifyYaml, "payload", mod::setPayload);
+        forDefinedBoolean(modifyYaml, "base64Encoded", mod::setBase64Encoded);
+        forDefinedObjectMap(modifyYaml, "json", mod::setJSONPayload);
+    }
+
+    private static RequestRoutingChangeBeanImpl buildOutputRoutingFromYaml(Map<String, Object> yaml) {
         if (yaml == null) {
             return null;
         }
 
-        SidecarOutputRouting r = new SidecarOutputRouting();
+        RequestRoutingChangeBeanImpl r = new RequestRoutingChangeBeanImpl();
         forDefinedString(yaml, "host", r::setHost);
         forDefinedString(yaml, "file", r::setFile);
         forDefinedString(yaml, "httpVerb", r::setHttpVerb);

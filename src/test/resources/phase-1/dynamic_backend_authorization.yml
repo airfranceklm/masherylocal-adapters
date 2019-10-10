@@ -61,9 +61,10 @@ Dynamic endpoint authorization:
 
       # This is what needs to be changed
       expect api origin request modifications:
-        added headers:
-          x-authz: akdsfaihvkmnadflknen43o5kn5
-          x-bnd-scope: v,346,f
+        modify:
+          added headers:
+            x-authz: akdsfaihvkmnadflknen43o5kn5
+            x-bnd-scope: v,346,f
 
     authentication fails:
       desc: The sidecar denies the authentication for the specific request.
@@ -97,8 +98,9 @@ Dynamic endpoint authorization:
           endpointId: anEndpointId
 
         output:
-          code: 403
-          message: This application cannot access this service.
+          terminate:
+            code: 403
+            message: This application cannot access this service.
 
       expect traffic manager:
         set complete: true

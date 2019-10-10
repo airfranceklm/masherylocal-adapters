@@ -1,0 +1,8 @@
+terminate:
+  json:
+  # No effect
+---
+terminate:
+  json:
+    a: "B"
+    c: 35

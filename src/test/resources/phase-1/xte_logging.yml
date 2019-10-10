@@ -121,8 +121,9 @@ XTE Logging:
             payload: ==PAYLOAD==
 
         output:
-          code: 465
-          message: Payload violates defined confidentiality policy
+          terminate:
+            code: 465
+            message: Payload violates defined confidentiality policy
 
       expect traffic manager:
         set complete: true

@@ -1,9 +1,9 @@
-package com.airfranceklm.amt.sidecar;
+package com.airfranceklm.amt.sidecar.model;
 
 import java.security.MessageDigest;
 import java.util.Objects;
 
-import static com.airfranceklm.amt.sidecar.SidecarInput.updateNullable;
+import static com.airfranceklm.amt.sidecar.model.SidecarInput.updateNullable;
 
 public class SidecarInputRouting {
     private String httpVerb;

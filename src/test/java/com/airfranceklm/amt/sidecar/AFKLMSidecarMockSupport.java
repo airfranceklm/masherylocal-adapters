@@ -1,15 +1,22 @@
 package com.airfranceklm.amt.sidecar;
 
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPostProcessorOutputImpl;
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPreProcessorOutputImpl;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarInvocationData;
+import com.airfranceklm.amt.sidecar.model.SidecarPostProcessorOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPreProcessorOutput;
 import com.airfranceklm.amt.sidecar.stack.AFKLMSidecarStack;
 import com.airfranceklm.amt.testsupport.RequestMockSupport;
 import com.mashery.trafficmanager.event.processor.model.PostProcessEvent;
 import com.mashery.trafficmanager.event.processor.model.PreProcessEvent;
+import org.easymock.IArgumentMatcher;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static org.easymock.EasyMock.*;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -17,7 +24,41 @@ import static org.junit.Assert.fail;
  */
 public class AFKLMSidecarMockSupport extends RequestMockSupport<SidecarRequestCase> {
 
-    protected AFKLMSidecarProcessor createSidecarProcessor(RequestMockSupport<SidecarRequestCase>.TestContext tc)  {
+    static SidecarInvocationData containingInput(SidecarInput input) {
+        reportMatcher(new SidecarInvocationDataMatcher(input));
+        return null;
+    }
+
+    static class SidecarInvocationDataMatcher implements IArgumentMatcher {
+        SidecarInput exp;
+
+        SidecarInvocationDataMatcher(SidecarInput exp) {
+            this.exp = exp;
+        }
+
+        @Override
+        public boolean matches(Object o) {
+            if (exp == null && o == null) return true;
+
+            if (o instanceof SidecarInvocationData) {
+                SidecarInvocationData sid = (SidecarInvocationData)o;
+                final boolean equals = Objects.equals(exp, sid.getInput());
+                if (!equals) {
+                    System.out.println(exp.explainDifferenceFrom(sid.getInput()));
+                }
+                return equals;
+            }
+            return false;
+        }
+
+        @Override
+        public void appendTo(StringBuffer stringBuffer) {
+            stringBuffer.append("Sidecar input containing:\n  >").append(String.valueOf(exp))
+                    .append("\n  > ");
+        }
+    }
+
+    protected AFKLMSidecarProcessor createSidecarProcessor(RequestMockSupport<SidecarRequestCase>.TestContext tc) {
 
         SidecarRequestCase rc = tc.getRequestCase();
 
@@ -30,36 +71,60 @@ public class AFKLMSidecarMockSupport extends RequestMockSupport<SidecarRequestCa
 
         try {
             if (rc.sidecarInput != null) {
-                if (rc.sidecarOutput != null) {
-                    expect(mockTransport.invoke(anyObject(), eq(rc.sidecarInput))).andReturn(rc.sidecarOutput).once();
-                } else if (rc.sidecarException != null){
-                    expect(mockTransport.invoke(anyObject(), eq(rc.sidecarInput))).andThrow(new IOException(rc.sidecarException)).once();
+                if (rc.isPreProcessorCase()) {
+                    if (rc.sidecarException != null) {
+                        expect(mockTransport
+                                .invokeAtPreProcessor(anyObject(), containingInput(rc.sidecarInput), anyObject()))
+                                .andThrow(new IOException(rc.sidecarException))
+                                .once();
+                    } else {
+                        SidecarPreProcessorOutput output = rc.preProcessorOutput != null ? rc.preProcessorOutput :
+                                new SidecarPreProcessorOutputImpl();
+
+                        expect(mockTransport
+                                .invokeAtPreProcessor(anyObject(), containingInput(rc.sidecarInput), anyObject()))
+                                .andReturn(output)
+                                .once();
+                    }
                 } else {
-                    // When output hasn't been specifically configured, or when exception wasn't
-                    // specified, then an empty do-nothing object will be returned.
-                    expect(mockTransport.invoke(anyObject(), eq(rc.sidecarInput))).andReturn(new SidecarOutputImpl()).once();
+                    if (rc.sidecarException != null) {
+                        expect(mockTransport
+                                .invokeAtPostProcessor(anyObject(), containingInput(rc.sidecarInput), anyObject()))
+                                .andThrow(new IOException(rc.sidecarException))
+                                .once();
+                    } else {
+                        SidecarPostProcessorOutput output = rc.postProcessorOutput != null ? rc.postProcessorOutput :
+                                new SidecarPostProcessorOutputImpl();
+
+                        expect(mockTransport
+                                .invokeAtPostProcessor(anyObject(), containingInput(rc.sidecarInput), anyObject()))
+                                .andReturn(output)
+                                .once();
+                    }
                 }
             }
 
             if (rc.preflightInput != null) {
                 if (rc.preflightOutput != null) {
-                    expect(mockTransport.invoke(anyObject(), eq(rc.preflightInput)))
+                    expect(mockTransport
+                            .invokeAtPreProcessor(anyObject(), containingInput(rc.preflightInput), anyObject()))
                             .andReturn(rc.preflightOutput)
                             .once();
                 } else if (rc.preflightException != null) {
-                    expect(mockTransport.invoke(anyObject(), eq(rc.preflightInput)))
+                    expect(mockTransport
+                            .invokeAtPreProcessor(anyObject(), containingInput(rc.preflightInput), anyObject()))
                             .andThrow(new IOException(rc.preflightException))
                             .once();
                 } else {
-                    expect(mockTransport.invoke(anyObject(), eq(rc.preflightInput)))
-                            .andReturn(new SidecarOutputImpl())
+                    expect(mockTransport
+                            .invokeAtPreProcessor(anyObject(), containingInput(rc.preflightInput), anyObject()))
+                            .andReturn(new SidecarPreProcessorOutputImpl())
                             .once();
                 }
             }
         } catch (IOException ex) {
             fail("An I/O exception was thrown during the setup of the mocks; this should never happen.");
         }
-
 
 
         // Otherwise the transport shouldn't be called at all.
@@ -76,6 +141,7 @@ public class AFKLMSidecarMockSupport extends RequestMockSupport<SidecarRequestCa
 
     /**
      * Verfies the handling of the event in the pre-processor.
+     *
      * @param rc request case
      */
     protected void verifyPreProcessorRequestCase(SidecarRequestCase rc) {
@@ -92,6 +158,7 @@ public class AFKLMSidecarMockSupport extends RequestMockSupport<SidecarRequestCa
 
     /**
      * Verfies the handling of the event in the pre-processor.
+     *
      * @param rc request case
      */
     protected void verifyPostProcessorRequestCase(SidecarRequestCase rc) {

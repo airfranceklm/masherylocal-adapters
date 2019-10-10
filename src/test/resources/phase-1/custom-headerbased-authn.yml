@@ -32,7 +32,7 @@ Authorization Servers issued JWT Tokens Validation:
         http verb: GET
         uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
         headers:
-          Authorization: B
+          Authorization: JWT Token from ASFC
 
       request to the api provider:
         provider uri: https://docker.kml/backend/url?myQuery=ffff
@@ -55,7 +55,7 @@ Authorization Servers issued JWT Tokens Validation:
           remoteAddress: 127.0.0.1
           request:
             headers:
-              authorization: B
+              authorization: JWT Token from ASFC
           params:
             B2C: false
             B2E: true
@@ -74,7 +74,7 @@ Authorization Servers issued JWT Tokens Validation:
         http verb: GET
         uri: https://api-unitttest.airfranceklm.com/fff?myQuery=123
         headers:
-          Authorization: B
+          Authorization: JWT Token from ASFC
 
       request to the api provider:
         provider uri: https://docker.kml/backend/url?myQuery=ffff
@@ -96,15 +96,16 @@ Authorization Servers issued JWT Tokens Validation:
           remoteAddress: 127.0.0.1
           request:
             headers:
-              authorization: B
+              authorization: JWT Token from ASFC
           params:
             B2C: false
             B2E: true
             depts: KLC|ITDCC
 
         output:
-          code: 445
-          message: Your department is not authorized to access this data
+          terminate:
+            code: 445
+            message: Your department is not authorized to access this data
 
       expect traffic manager:
         set complete: true
@@ -174,8 +175,9 @@ Custom Header-Based Authentication:
             Public_Key: b
 
         output:
-          code: 431
-          message: "Not permitted for this application at this time"
+          terminate:
+            code: 431
+            message: "Not permitted for this application at this time"
 
       expect traffic manager:
         set complete: true
@@ -316,9 +318,10 @@ Custom Header-Based Authentication:
             Public_Key: b
 
         output:
-          addHeaders:
-            x-afklm-assurance: "3"
-            x-afklm-channel: trusted
+          modify:
+            addHeaders:
+              x-afklm-assurance: "3"
+              x-afklm-channel: trusted
 
       expect api origin request modifications:
         added headers:

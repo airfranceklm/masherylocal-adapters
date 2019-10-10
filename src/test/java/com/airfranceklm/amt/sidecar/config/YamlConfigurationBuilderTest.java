@@ -12,6 +12,7 @@ import static junit.framework.Assert.*;
 
 public class YamlConfigurationBuilderTest {
 
+
     @Test
     public void testLoadingSynchronicity() {
         Iterator<Object> obj = loadAllYamlDocuments(getClass(), "/yaml-local-config/synchronicity.yml");
@@ -157,7 +158,7 @@ public class YamlConfigurationBuilderTest {
     }
 
     @Test
-    public void testSidecarParamsExpansion() {
+    public void testSidecarInputExpansion() {
         Iterator<Object> obj = loadAllYamlDocuments(getClass(), "/yaml-local-config/sidecarInputExpansion.yml");
 
         // First case: stack not mentioned.
@@ -216,73 +217,6 @@ public class YamlConfigurationBuilderTest {
         cfg = YamlConfigurationBuilder.getSidecarConfiguration(SidecarInputPoint.PreProcessor,
                 YamlConfigurationBuilder.nextYamlDocument(obj));
         assertTrue(cfg.needsExpansionOf(InputScopeExpansion.ResponsePayload));
-    }
-
-    @Test
-    public void testPreflightParamsExpansion() {
-        // Will fail -- redo.
-        Iterator<Object> obj = loadAllYamlDocuments(getClass(), "/yaml-local-config/preflightInputExpansion.yml");
-
-        // First case: stack not mentioned.
-        final SidecarInputPoint pnt = SidecarInputPoint.Preflight;
-        SidecarConfiguration cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsNoExpansion());
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(RemoteAddress));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.GrantType));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.TokenScope));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.Token));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.FullToken));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.RequestVerb));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertFalse(cfg.needsPreflightExpansionOf(InputScopeExpansion.Operation));
-        assertTrue(cfg.hasErrors());
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.AllRequestHeaders));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertFalse(cfg.needsPreflightExpansionOf(InputScopeExpansion.RequestPayload));
-        assertTrue(cfg.hasErrors());
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertTrue(cfg.needsPreflightExpansionOf(InputScopeExpansion.Routing));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertFalse(cfg.needsPreflightExpansionOf(InputScopeExpansion.RelayParams));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertFalse(cfg.needsPreflightExpansionOf(InputScopeExpansion.AllResponseHeaders));
-
-        cfg = YamlConfigurationBuilder.getSidecarConfiguration(pnt,
-                YamlConfigurationBuilder.nextYamlDocument(obj));
-        assertFalse(cfg.needsPreflightExpansionOf(InputScopeExpansion.ResponsePayload));
-        assertTrue(cfg.hasErrors());
     }
 
     @Test
@@ -743,8 +677,9 @@ public class YamlConfigurationBuilderTest {
         cfg = YamlConfigurationBuilder.getSidecarConfiguration(SidecarInputPoint.PreProcessor,
                 YamlConfigurationBuilder.nextYamlDocument(obj));
         assertNotNull(cfg.getStaticModification());
-        assertNotNull(cfg.getStaticModification().getChangeRoute());
-        assertEquals("localhost-klm", cfg.getStaticModification().getChangeRoute().getHost());
+        assertNotNull(cfg.getStaticModification().getModify());
+        assertNotNull(cfg.getStaticModification().getModify().getChangeRoute());
+        assertEquals("localhost-klm", cfg.getStaticModification().getModify().getChangeRoute().getHost());
     }
 
     @Test

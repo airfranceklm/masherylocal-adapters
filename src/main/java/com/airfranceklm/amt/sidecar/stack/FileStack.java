@@ -1,7 +1,6 @@
 package com.airfranceklm.amt.sidecar.stack;
 
-import com.airfranceklm.amt.sidecar.SidecarInput;
-import com.airfranceklm.amt.sidecar.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.*;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
 
 import java.io.IOException;
@@ -11,9 +10,14 @@ import java.io.IOException;
  * Not recommended for production purposes.
  */
 public class FileStack implements AFKLMSidecarStack {
+
     @Override
-    public SidecarOutput invoke(AFKLMSidecarStackConfiguration cfg, SidecarInput input) throws IOException {
-        // TODO: write the output
+    public SidecarPreProcessorOutput invokeAtPreProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
+        return null;
+    }
+
+    @Override
+    public SidecarPostProcessorOutput invokeAtPostProcessor(AFKLMSidecarStackConfiguration cfg, SidecarInvocationData cmd, ProcessorServices services) throws IOException {
         return null;
     }
 

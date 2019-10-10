@@ -218,12 +218,12 @@ public class AFKLMSidecarPayloadExpansionTest extends AFKLMSidecarMockSupport {
 
     @Test
     public void testFullPayloadExtractionAtPostprocessorAsText() {
-        verifyPostProcessorRequestCase(responseCase.build());
+        verifyPostProcessorRequestCase(responseCase.duplicate().postProcessorCase().build());
     }
 
     @Test
     public void testFullPayloadExtractionAtPostprocessorWithGZipCompression() {
-        SidecarTestDSL caseDSl = responseCase.duplicate();
+        SidecarTestDSL caseDSl = responseCase.duplicate().postProcessorCase();
         caseDSl.configureAPIOriginResponse((dsl) -> {
             dsl.withHeader("content-encoding", "gzip");
         });
@@ -240,7 +240,7 @@ public class AFKLMSidecarPayloadExpansionTest extends AFKLMSidecarMockSupport {
 
     @Test
     public void testFullPayloadExtractionAtPostprocessorWithBinaryResponse() {
-        SidecarTestDSL caseDSl = responseCase.duplicate();
+        SidecarTestDSL caseDSl = responseCase.duplicate().postProcessorCase();
         caseDSl.configureAPIOriginResponse((dsl) -> {
             dsl.withHeader("content-type", "image/custom")
                     .withPayloadFromResource(AFKLMSidecarPayloadExpansionTest.class, "/payloads/random-bytes.png");
@@ -286,7 +286,7 @@ public class AFKLMSidecarPayloadExpansionTest extends AFKLMSidecarMockSupport {
             });
         });
 
-        verifyPostProcessorRequestCase(caseDSL.build());
+        verifyPostProcessorRequestCase(caseDSL.postProcessorCase().build());
     }
 
     // ----------------------------------------------------------------------

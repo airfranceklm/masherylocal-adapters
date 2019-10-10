@@ -1,5 +1,11 @@
 package com.airfranceklm.amt.sidecar;
 
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPostProcessorOutputImpl;
+import com.airfranceklm.amt.sidecar.impl.model.SidecarPreProcessorOutputImpl;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPostProcessorOutput;
+import com.airfranceklm.amt.sidecar.model.SidecarPreProcessorOutput;
 import com.airfranceklm.amt.testsupport.RequestCase;
 
 import static org.junit.Assert.fail;
@@ -8,11 +14,13 @@ public class SidecarRequestCase extends RequestCase {
 
     String sidecarException;
     SidecarInput sidecarInput;
-    SidecarOutput sidecarOutput;
+
+    SidecarPreProcessorOutputImpl preProcessorOutput;
+    SidecarPostProcessorOutputImpl postProcessorOutput;
 
     String preflightException;
     SidecarInput preflightInput;
-    SidecarOutput preflightOutput;
+    SidecarPreProcessorOutputImpl preflightOutput;
 
     SidecarRequestCase() {
         super();
@@ -47,17 +55,24 @@ public class SidecarRequestCase extends RequestCase {
         return this.preflightInput;
     }
 
-    public SidecarOutputImpl getOrCreateSidecarOutput() {
-        if (sidecarOutput == null) {
-            this.sidecarOutput = new SidecarOutputImpl();
+    public SidecarPreProcessorOutputImpl getOrCreateSidecarPreProcessorOutput() {
+        if (preProcessorOutput == null) {
+            this.preProcessorOutput = new SidecarPreProcessorOutputImpl();
         }
-        return (SidecarOutputImpl)this.sidecarOutput;
+        return this.preProcessorOutput;
     }
 
-    public SidecarOutputImpl getOrCreatePreflightOutput() {
-        if (preflightOutput == null) {
-            this.preflightOutput = new SidecarOutputImpl();
+    public SidecarPostProcessorOutputImpl getOrCreateSidecarPostProcessorOutput() {
+        if (postProcessorOutput == null) {
+            this.postProcessorOutput = new SidecarPostProcessorOutputImpl();
         }
-        return (SidecarOutputImpl)this.preflightOutput;
+        return this.postProcessorOutput;
+    }
+
+    public SidecarPreProcessorOutputImpl getOrCreatePreflightOutput() {
+        if (preflightOutput == null) {
+            this.preflightOutput = new SidecarPreProcessorOutputImpl();
+        }
+        return this.preflightOutput;
     }
 }

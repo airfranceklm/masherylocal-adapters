@@ -2,6 +2,9 @@ package com.airfranceklm.amt.sidecar;
 
 import com.airfranceklm.amt.sidecar.config.SidecarInputPoint;
 import com.airfranceklm.amt.sidecar.config.SidecarSynchronicity;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarInputHTTPMessage;
+import com.airfranceklm.amt.sidecar.model.SidecarInputHTTPResponseMessage;
 
 import java.util.HashMap;
 import java.util.function.Consumer;

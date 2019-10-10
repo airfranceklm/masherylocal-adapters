@@ -15,7 +15,7 @@ Smoke Test:
 
   cases:
     base post-processing scenario:
-      event: post-processor
+      point: post-processor
       desc: Checking that the unit test will compile and will nominally pass.
 
       client:
@@ -98,7 +98,7 @@ Complete Offload Example:
 
   cases:
     base post-processing scenario:
-      event: post-processor
+      point: post-processor
       desc: Checking that the API will receive
 
       client:

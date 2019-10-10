@@ -1,8 +1,8 @@
 package com.airfranceklm.amt.sidecar.input;
 
-import com.airfranceklm.amt.sidecar.SidecarInput;
-import com.airfranceklm.amt.sidecar.SidecarInputHTTPMessage;
-import com.airfranceklm.amt.sidecar.SidecarInputRouting;
+import com.airfranceklm.amt.sidecar.model.SidecarInput;
+import com.airfranceklm.amt.sidecar.model.SidecarInputHTTPMessage;
+import com.airfranceklm.amt.sidecar.model.SidecarInputRouting;
 import com.airfranceklm.amt.sidecar.config.ConfigRequirement;
 import com.airfranceklm.amt.sidecar.config.ConfigSetting;
 import com.airfranceklm.amt.sidecar.config.SidecarConfiguration;
