@@ -1,0 +1,33 @@
+scopeFilters:
+  # No effect
+---
+scopeFilters:
+  - param: 345
+    group: requestHeader
+    label: 456
+    value: 567
+    inclusive: very false
+# completely wrong types must be ignored fully
+---
+scopeFilters:
+  - param: content-type
+    group: requestHeader
+    label: ct
+    value: .*json.*
+    # Should be inclusive
+  - param: doc-type
+    group: requestHeader
+    label: ct1
+    value: .*yaml.*
+    inclusive: true
+  - param: user-agent
+    group: requestHeader
+    label: ct2
+    value: .*java.*
+    inclusive: false
+  - param: user-agent
+    group: responseHeader
+    label: ct3
+    value: .*cpp.*
+    inclusive: false
+---

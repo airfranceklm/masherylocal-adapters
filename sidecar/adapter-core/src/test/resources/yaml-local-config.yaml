@@ -1,0 +1,55 @@
+serviceId: aServiceId
+endpointId: anEndpointId
+
+pre-processor:
+  in-memory store:
+    - hash: abs12345
+      output:
+
+  preflight:
+    enabled: true
+    elements:
+      - name: packageKey
+      - name: requestHeader
+        parameter: Authorization
+        filters:
+          - algorithm: Absent
+            intent: MatchProhibits
+      - name: requestHeader
+        parameter: X-AFKLM-Market
+
+  sidecar:
+    synchronicity: RequestResponse
+    failsafe: false
+    timeout: 2.5s
+    params:
+      A: B
+
+    stack:
+      name: fs
+      params:
+        directory: /home/administrator/sidecar-starter
+        permission: 0677
+        owner: administrator
+
+    elements:
+      - name: requestHeader
+        parameter: X-AFKLM-Station
+        filters:
+          - algorithm: StringMatch
+            intent: MatchScopes
+            expression: US|CA
+            label: North America
+        noFiltersMatched: Noop
+
+      - name: eav
+        parameter: Group Level
+        filters:
+          - algorithm: StringMatch
+            intent: MatchDescopes
+            expression: Delta|Boeing
+
+  staticModification:
+    modify:
+      changeRoute:
+        host: docker.klm.com

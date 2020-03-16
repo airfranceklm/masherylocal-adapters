@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.airfranceklm.amtml.sidecar</groupId>
+        <artifactId>sidecar-main</artifactId>
+        <version>1.0</version>
+    </parent>
+
+    <groupId>com.airfranceklm.amtml.sidecar.stack</groupId>
+    <artifactId>stack-main</artifactId>
+    <packaging>pom</packaging>
+
+    <version>1.0</version>
+    <name>Air France/KLM Sidecar Stacks for Mashery Local 4</name>
+    <url>https://confluence.devnet.klm.com/display/AMT/Sidecar+Adapter</url>
+    <modules>
+        <module>aws-lambda-stack</module>
+        <module>aws-sqs-stack</module>
+        <module>fs-stack</module>
+        <module>http-stack</module>
+    </modules>
+</project>

@@ -1,0 +1,8 @@
+staticModification:
+  # No effect
+---
+staticModification:
+  modify:
+    changeRoute:
+      host: localhost-klm
+

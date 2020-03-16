@@ -1,0 +1,25 @@
+require:
+include:
+  # No effect
+---
+require:
+  packageKey-eavs:
+    # Empty list
+include:
+  packageKey-eavs:
+    # Empty list
+  # No effect
+---
+require:
+  packageKey-eavs:
+    - EAV1
+    - EAV2
+    # Empty list
+include:
+  packageKey-eavs:
+    - EAV3
+    - EAV4
+    - EAV5
+    # Empty list
+  # No effect
+---

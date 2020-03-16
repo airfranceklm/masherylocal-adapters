@@ -1,0 +1,6 @@
+endpoint name: YAML Endpoint
+service id: yamlServiceId
+endpoint id: yamlEndpointId
+
+endpoint uri: https://api-unittest.airfranceklm.com/a/yaml/api
+origin uri: https://api.origin.unittest.klm.com/infra/yaml/api

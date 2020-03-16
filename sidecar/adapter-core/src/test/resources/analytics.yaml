@@ -1,0 +1,60 @@
+serviceId: eq7mxju5k4hvmpzejpzax2ap
+endpointId: eq7mxju5k4hvmpzejpzax2ap
+
+pre-processor:
+  staticModificatoin:
+    modify:
+      addHeaders:
+        X-Sidecar: AFKLM-Juju v 1.0
+      changeRoute:
+        host: 172.29.167.126
+        file: /respond
+
+  sidecar:
+    synchronicity: RequestResponse
+    failsafe: false
+    timeout: 2.5s
+    params:
+      A: B
+
+    stack:
+      name: aws-lambda
+      params:
+        key: AKIAWKHHS2FYPXYB4HXS
+        secret: 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
+        region: eu-west-1
+        functionARN: arn:aws:lambda:eu-west-1:434277372272:function:async-analytics-sidecar
+
+    elements:
+      - name: operation
+      - name: requestPayload
+      - name: requestHeader
+        parameter: content-type
+      - name: requestHeader
+        parameter: content-encoding
+
+
+post-processor:
+
+  sidecar:
+    synchronicity: RequestResponse
+    failsafe: false
+    timeout: 2.5s
+    params:
+      A: B
+
+    stack:
+      name: aws-lambda
+      params:
+        key: AKIAWKHHS2FYPXYB4HXS
+        secret: 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
+        region: eu-west-1
+        functionARN: arn:aws:lambda:eu-west-1:434277372272:function:async-analytics-sidecar
+
+    elements:
+      - name: operation
+      - name: responsePayload
+      - name: responseHeader
+        parameter: content-type
+      - name: responseHeader
+        parameter: content-encoding

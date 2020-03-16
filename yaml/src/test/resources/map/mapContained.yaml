@@ -1,0 +1,6 @@
+bean-a:
+  str: str-a
+  int: 30
+bean-b:
+  str: str-b
+  int: 50

@@ -1,0 +1,13 @@
+client:
+  http verb: POST
+  headers:
+    A: b
+    C: d
+  paylaod: == PROPAGATED ==
+
+request to the api origin:
+  provider uri: https://docker.kml/backend/url?myQuery=ffff
+  dropped headers:
+    - C
+  added headers:
+    E: f

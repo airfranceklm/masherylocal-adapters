@@ -1,0 +1,76 @@
+#Fail-safe configuration cases:
+#  desc: This is a simple test simulation
+
+service id: fff
+endpoint id: ffff
+endpoint name: fake
+
+endpoint uri: https://api-unitttest.airfranceklm.com/
+origin uri: https://docker.kml/backend/url
+
+dropped headers:
+  - C
+  - D
+
+added headers:
+  E: F
+  G: H
+
+pre-processor configuration:
+  synchronicity: request-response
+  elements: +requestHeaders,messageId,packageKey
+  failsafe: "true"
+
+post-processor configuration:
+  c: d
+
+---
+name: continues on receiving internal error
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /fff
+  query params:
+    myQuery: 123
+  headers:
+    A: B
+    C: C1
+  payload:  AAAA
+  # RequestPayload can be for GET-type requests.
+
+  application:
+    name: the-app
+    extended attributes:
+      a: b
+    package key:
+      key: dfgf
+
+  authorization context:
+    scope: "12345"
+    user context: "456"
+    grant type: CC
+
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    serviceId: fff
+    endpointId: ffff
+    packageKey: dfgf
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        c: C1
+        e: F
+        g: H
+        x-mashery-message-id: unit-test-call-uuid
+
+
+  throw exception: "Lambda has failed"
+    # Failure of the lambda function doesn't stop.

@@ -1,0 +1,39 @@
+preflight:
+    # No effect
+---
+preflight:
+  require:
+    eavs:
+      # Empty list
+  include:
+    eavs:
+      # Empty list
+    # No effect
+---
+preflight:
+  require:
+    eavs:
+      - A
+      - 53
+      # Empty list
+  include:
+    eavs:
+      - B
+      - 54
+      # Empty list
+    # No effect
+---
+preflight:
+  require:
+    eavs:
+      - EAV1
+      - EAV2
+      # Empty list
+  include:
+    eavs:
+      - EAV3
+      - EAV4
+      - EAV5
+      # Empty list
+    # No effect
+---

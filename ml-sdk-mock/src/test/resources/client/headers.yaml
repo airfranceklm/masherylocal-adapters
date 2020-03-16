@@ -1,0 +1,4 @@
+client:
+  headers:
+    Authorization: B
+    Content-Type: application/json

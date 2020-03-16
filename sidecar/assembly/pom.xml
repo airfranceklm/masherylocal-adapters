@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.airfranceklm.amtml.sidecar</groupId>
+        <artifactId>sidecar-main</artifactId>
+        <version>1.0</version>
+    </parent>
+    <artifactId>assembly-main</artifactId>
+    <groupId>com.airfranceklm.amtml.sidecar.assembly</groupId>
+    <packaging>pom</packaging>
+
+    <version>1.0</version>
+    <name>Assemblies of the adapter</name>
+    <description>
+        Assembly in to a single runtime component.
+    </description>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <dependencies-version>1.0-SNAPSHOT</dependencies-version>
+    </properties>
+
+    <modules>
+        <module>default</module>
+        <module>osgi</module>
+    </modules>
+</project>

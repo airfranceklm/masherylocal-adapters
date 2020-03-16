@@ -1,0 +1,1 @@
+# Simple Mashery Authentication Protocol

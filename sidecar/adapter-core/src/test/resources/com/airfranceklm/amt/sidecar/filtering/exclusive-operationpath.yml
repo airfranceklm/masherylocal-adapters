@@ -1,0 +1,51 @@
+#Exclusive filtering on a operation path:
+#  desc: Test how filtering works on a single operation path.
+
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+
+pre-processor configuration:
+  unless-resourcePath: ~//path/to/.+/.*/
+  elements: -headers,messageId,packageKey
+
+---
+name:    positive confirmation
+api client request:
+  remote address: 123.456.789.012
+  http verb: GET
+  resource: /path/from/api-version_v1/op
+  headers:
+    A: B
+    Content-Type: application/json+super-custom-extension
+    AFKLM-Market: NL
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+
+    operation:
+      path: /path/from/api-version_v1/op
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+
+  output:
+  # An empty object, do nothing.
+---
+name:  filtered-out confirmation
+inherited:
+  - client-request
+api client request:
+  resource: /path/to/api-version_v1/op
+
+# In this test, Lambda should not be even called.

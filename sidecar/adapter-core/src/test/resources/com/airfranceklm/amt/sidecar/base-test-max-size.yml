@@ -1,0 +1,73 @@
+#Max Request Size Blocking Configuration:
+#  desc: Checks that the maximum size for the payload is honoured.
+#
+service id: fff
+endpoint id: ffff
+endpoint name: fake
+
+endpoint uri: https://api-unitttest.airfranceklm.com/
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  synchronicity: request-response
+  # We have to request the expansion of the input into the payload
+  # in order for the payload limiting to kick-in.
+  elements: requestPayload,+requestHeaders,messageId,packageKey
+  max-request-size: 5b,client-error
+
+---
+name: fitting payload
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: POST
+  resource: /fff
+  query params:
+    myQuery: 123
+  headers:
+    a: B
+    Content-Type: text/plain
+  payloadLength: 3
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        content-type: text/plain
+        x-mashery-message-id: unit-test-call-uuid
+      payload: ABC
+    packageKey: dfgf
+    serviceId: fff
+    endpointId: ffff
+
+  output:
+  # An empty object, do nothing.
+
+        # Te request should go through without any further modifications.
+---
+name: exceeding payload
+inherited:
+  - client-request
+
+api client request:
+  payload: ABCDEFGHIJKLMOP
+
+# Lambda function is not called: the 400 will be returned back
+# to the calling application.
+
+mashery response:
+  complete: true
+  status code: 400
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"

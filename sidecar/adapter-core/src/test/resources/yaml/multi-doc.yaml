@@ -1,0 +1,8 @@
+# This is a demonstration of what a mult-document YAML file is. Needed for training/education purposes.
+
+configuration:
+  name: Doc 1
+
+---
+configuration:
+  name: Doc 2

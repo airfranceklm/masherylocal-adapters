@@ -1,0 +1,49 @@
+preflight:
+  require:
+    request-headers:
+  # No effect
+---
+preflight:
+  require:
+    request-headers:
+  include:
+    request-headers:
+    # No effect
+---
+preflight:
+  require:
+    request-headers:
+      - x-afklm-h1
+      - x-AFKLM-h2
+  include:
+    # Not present
+---
+preflight:
+  require:
+    request-headers:
+      - x-afklm-h1
+      - 45
+      # Number will be cast to string
+  include:
+---
+preflight:
+  require:
+    request-headers:
+    # No effect
+  include:
+    request-headers:
+      - x-afklm-h1
+      - x-AFKLM-h2
+---
+preflight:
+  require:
+    request-headers:
+    # No effect
+  include:
+    request-headers:
+      - x-afklm-h1
+      - 45
+      # Will be converted to string
+---
+
+

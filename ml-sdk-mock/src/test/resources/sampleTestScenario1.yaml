@@ -1,0 +1,19 @@
+# Sample test scenario to make sure that YAML loading is possible
+Asynchronous analytics:
+  desc: Case illustrates the use of the Async analytics. It is largely analogous to XTE Logging, with the crutial
+    difference that it's invoked as an event and is fail-safe.
+
+  use cases:
+    - Asynchronous analytics
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    post-processor configuration:
+      synchronicity: event
+      expand-input: operation,requestPayload,responsePayload
+      failsafe: "true"
+

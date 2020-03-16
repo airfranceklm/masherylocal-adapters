@@ -1,0 +1,57 @@
+endpoint name: YAML Endpoint
+service id: yamlServiceId
+endpoint id: yamlEndpointId
+
+endpoint uri: https://api-unittest.airfranceklm.com/a/{version}/yaml/api
+origin uri: https://api.origin.unittest.klm.com/infra/{version}/yaml/api
+
+query params:
+  rootPath: /infra
+
+dropped headers:
+  - Authorization
+  - X-Authorization
+  - X-AFKLM-Domain
+  - X-Clinet-Category
+
+added headers:
+  X-AFKLM-Domain: Digital
+  X-Client-Category: Internal
+
+---
+name: Base scenario
+desc: An illustration of a simple get towards the back-end
+
+point: PreProcessor
+api client request:
+  remote address: 192.168.254.1
+  http verb: GET
+  resource: /
+  query params:
+    list: all
+
+  pathVariables:
+    version: v3
+
+  application:
+    name: Unit test app
+    extended attributes:
+      app-eav: eav-value
+
+    package key:
+      key: ajfdlkajdf5nmndkjjdf
+      extended attributes:
+        pk-eav: eav-value-pk
+
+  authorization context:
+    scope: a b c
+    user context: a user context
+    grant type: password
+    expires: 2020-01-01T00:00:00Z
+
+---
+name: Extended scenario
+
+point: PostProcessor
+inherited:
+  - client-request

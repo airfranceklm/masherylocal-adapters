@@ -1,0 +1,5 @@
+endpoint:
+  endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+client:
+  uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123

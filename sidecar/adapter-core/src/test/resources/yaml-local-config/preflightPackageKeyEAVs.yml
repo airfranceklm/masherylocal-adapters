@@ -1,0 +1,40 @@
+preflight:
+  include:
+  require:
+    # No effect
+---
+preflight:
+  require:
+    packageKey-eavs:
+      # Empty list
+  include:
+    packageKey-eavs:
+      # Empty list
+    # No effect
+---
+preflight:
+  require:
+    packageKey-eavs:
+      - string-1
+      - 54
+      # Empty list
+  include:
+     packageKey-eavs:
+      - string-2
+      - 65
+    # No effect: mix-up of the types in the configuration.
+---
+preflight:
+  require:
+    packageKey-eavs:
+      - EAV1
+      - EAV2
+      # Empty list
+  include:
+    packageKey-eavs:
+      - EAV3
+      - EAV4
+      - EAV5
+      # Empty list
+    # No effect
+---

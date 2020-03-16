@@ -1,0 +1,52 @@
+#Passing parameters test:
+#  desc: Checking that the function parameters will be passed.
+#
+service id: fff
+endpoint id: ffff
+endpoint name: fake
+
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri:   https://docker.kml/backend/url
+
+pre-processor configuration:
+  param-p1: value-1
+  param-p2: value-2
+  elements: +requestHeaders,messageId,packageKey
+
+---
+name: positively passing
+api client request:
+  remote address: 127.0.0.1
+  http verb: POST
+  resource: /path/to/op
+  query params:
+    myQuery: 123
+    p1: djfr
+  headers:
+    A: B
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: fff
+    endpointId: ffff
+    params:
+      p1: value-1
+      p2: value-2
+
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+
+  output:
+    # An empty object, do nothing.

@@ -1,0 +1,6 @@
+package key:
+  key: dfgf
+  application:
+    name: TheApp
+    extended attributes:
+      A: B

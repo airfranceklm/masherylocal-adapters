@@ -1,1 +1,0 @@
-(Extending the transport is not described yet.)

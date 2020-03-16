@@ -1,0 +1,98 @@
+# Sample test scenario to make sure that YAML loading is possible
+Asynchronous analytics:
+  desc: Case illustrates the use of the Async analytics. It is largely analogous to XTE Logging, with the crutial
+    difference that it's invoked as an event and is fail-safe.
+
+  use cases:
+    - Asynchronous analytics
+
+  endpoint:
+    service id: aServiceId
+    endpoint id: anEndpointId
+    endpoint name: unit-test-endpoint
+    endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+    post-processor configuration:
+      synchronicity: event
+      expand-input: operation,requestPayload,responsePayload
+      failsafe: "true"
+
+  cases:
+    payload extraction on get:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api origin:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+          Content-Type: text/plain
+        payload: ==RESPONSE PAYLOAD==
+
+    payload extraction on post:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: POST
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+          Content-Type: text/plain
+        payload: == REQUEST PAYLOAD ==
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+          Content-Type: text/plain
+        payload: ==RESPONSE PAYLOAD==
+
+    invocation failure:
+      point: post-processor
+
+      client:
+        remote address: 1.2.3.4
+        http verb: GET
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        headers:
+          Authorization: B
+
+      request to the api provider:
+        provider uri: https://docker.kml/backend/url?myQuery=ffff
+
+      key:
+        package key: dfgf
+        application:
+          name: the-app
+
+      api origin response:
+        code: 201
+        headers:
+          RA: RB
+          Content-Type: text/plain
+        payload: ==PAYLOAD==
+
+    # Nothing should happen: the call will just continue.

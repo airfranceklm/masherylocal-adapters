@@ -1,0 +1,24 @@
+require:
+  # Empty object
+include:
+  # Empty object
+  # No effect
+---
+require:
+  eavs:
+    # Empty list
+include:
+  eavs:
+    # Empty list
+  # No effect
+---
+require:
+  eavs:
+    - EAV1
+    - EAV2
+    # Empty list
+include:
+  eavs:
+    - EAV3
+    - EAV4
+    - EAV5

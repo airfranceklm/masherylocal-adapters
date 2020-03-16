@@ -1,0 +1,4 @@
+expect terminate call:
+  headers:
+    A: B
+    C: d

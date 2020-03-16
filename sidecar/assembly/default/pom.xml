@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.airfranceklm.amtml.sidecar.assembly</groupId>
+        <artifactId>assembly-main</artifactId>
+        <version>1.0</version>
+    </parent>
+    <artifactId>afklm-default-launcher</artifactId>
+    <packaging>jar</packaging>
+
+    <version>1.0</version>
+    <name>Air France/KLM Default Launcher</name>
+    <description>
+        Default production-grant launcher
+    </description>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <dependencies-version>1.0-SNAPSHOT</dependencies-version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                        <manifestEntries>
+                            <version>${project.version}</version>
+                            <url>https://confluence.devnet.klm.com/display/AMT/API+Support+Home</url>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptor>assembly.xml</descriptor>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>adapter-core</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>alcp-algorithms</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <!-- Necessary stacks -->
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar.stack</groupId>
+            <artifactId>http-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <!-- Necessary stacks -->
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar.stack</groupId>
+            <artifactId>aws-lambda-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar.stack</groupId>
+            <artifactId>aws-lambda-over-http-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar.stack</groupId>
+            <artifactId>fs-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,82 @@
+#
+#Exclusive filtering on a scope:
+#  desc: Test how filtering works on a single package key.#
+#
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  unless-tokenScope-pax: ~/.*role:pax.*/
+  unless-tokenScope-bax: ~/.*role:bax.*/
+  elements: -headers,messageId,packageKey
+
+---
+name:    positive confirmation
+api client request:
+  remote address: 123.456.789.012
+  http verb: GET
+  resource: /path/to/api-version_v1/op?myQuery=123
+  headers:
+    A: B
+    Content-Type: application/json+super-custom-extension
+    AFKLM-Market: NL
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: aKey
+
+  authorization context:
+    scope: "role:unit-tester-that-roxx"
+    user context: "123 user-context 456"
+    grant type: CC
+    expires: "2020-03-24T13:48:09Z"
+
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    token:
+      scope: role:unit-tester-that-roxx
+    packageKey: aKey
+    serviceId: srvId
+    endpointId: endpId
+
+  output:
+  # An empty object, do nothing.
+---
+name:    filtered-out confirmation
+inherited:
+  - client-request
+
+api client request:
+  # In this test, Lambda should not be even called.
+  authorization context:
+    scope: "role:customer, role:pax"
+    user context: "123 user-context 456"
+    grant type: CC
+    expires: "2020-03-24T13:48:09Z"
+---
+name:  null inclusion confirmation
+inherited:
+  - client-http-request
+  - application
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    packageKey: aKey
+    serviceId: srvId
+    endpointId: endpId
+
+  output:
+  # An empty object, do nothing.

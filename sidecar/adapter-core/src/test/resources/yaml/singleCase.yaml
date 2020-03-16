@@ -1,0 +1,61 @@
+# This document shows loading a single case.
+
+endpoint:
+  service id: aServiceId
+  endpoint id: anEndpointId
+  endpoint name: unit-test-endpoint
+  endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+
+  post-processor configuration:
+    synchronicity: event
+    expand-input: operation,requestPayload,responsePayload
+    failsafe: "true"
+
+point: post-processor
+
+client:
+  remote address: 1.2.3.4
+  http verb: GET
+  uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+  headers:
+    Authorization: B
+
+request to the api origin:
+  origin uri: https://docker.kml/backend/url?myQuery=ffff
+
+package key:
+  key: dfgf
+  application:
+    name: the-app
+
+response from the api origin:
+  code: 201
+  headers:
+    RA: RB
+    Content-Type: text/plain
+  payload: ==RESPONSE PAYLOAD==
+
+# This is what should be sent to lambda
+sidecar:
+  post-processor:
+    input:
+      masheryMessageId: unit-test-call-uuid
+      synchronicity: Event
+      point: PostProcessor
+      packageKey: dfgf
+      serviceId: aServiceId
+      endpointId: anEndpointId
+
+      operation:
+        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+        httpVerb: GET
+        path: /controlled-operation/param/search
+        query:
+          myQuery: p123
+
+      response:
+        responseCode: 201
+        payloadLength: 20
+        payload: ==RESPONSE PAYLOAD==
+
+    output:

@@ -1,0 +1,56 @@
+include:
+  elements:
+  # No effect
+---
+include:
+  elements:
+    - remoteAddress
+
+---
+include:
+  elements:
+    - grantType
+---
+include:
+  elements:
+    - tokenScope
+---
+include:
+  elements:
+    - token
+---
+include:
+  elements:
+    - +Token
+---
+include:
+  elements:
+    - verb
+---
+include:
+  elements:
+    - operation
+---
+include:
+  elements:
+    - +requestHeaders
+---
+include:
+  elements:
+    - requestPayload
+---
+include:
+  elements:
+    - routing
+---
+include:
+  elements:
+    - relayParams
+---
+include:
+  elements:
+    - +responseHeaders
+---
+include:
+  elements:
+    - responsePayload

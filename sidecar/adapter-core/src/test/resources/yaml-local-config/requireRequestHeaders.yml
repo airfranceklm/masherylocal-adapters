@@ -1,0 +1,35 @@
+require:
+# No effect
+---
+require:
+  request-headers:
+  # No effect
+---
+require:
+  request-headers:
+    - x-afklm-h1
+    - x-AFKLM-h2
+---
+require:
+  request-headers:
+    - x-afklm-h1
+    - 45
+    # This is not the correct format, will have no effect.
+---
+require:
+  request-headers:
+  # No effect
+include:
+  request-headers:
+    - x-afklm-h1
+    - x-AFKLM-h2
+---
+require:
+  request-headers:
+    # No effect
+include:
+  request-headers:
+    - x-afklm-h1
+    - 45
+    # Will have no effect: contains number
+---

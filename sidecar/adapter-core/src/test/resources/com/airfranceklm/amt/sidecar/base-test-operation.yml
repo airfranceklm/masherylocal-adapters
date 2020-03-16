@@ -1,0 +1,89 @@
+#Operation expansion test:
+#  desc: Checking that the function parameters will be passed.
+#
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  elements: +operation,+requestHeaders,messageId,packageKey
+
+---
+
+name: correct extraction
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: POST
+  resource: /path/to/op
+  query params:
+    myQuery: "123"
+    p1: djfr
+  headers:
+    A: B
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+    operation:
+      httpVerb: post
+      path: /path/to/op
+      query:
+        myQuery: "123"
+        p1: djfr
+
+      uri: https://api-unitttest.airfranceklm.com/api-path/path/to/op?myQuery=123&p1=djfr
+
+  output:
+  # An empty object, do nothing.
+---
+name: correct extraction without query string
+
+inherited:
+  - application
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: POST
+  resource: /path/to/op
+  headers:
+    A: B
+  payload: ABC
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+    operation:
+      httpVerb: post
+      path: /path/to/op
+      uri: https://api-unitttest.airfranceklm.com/api-path/path/to/op
+
+  output:
+  # An empty object, do nothing.

@@ -1,0 +1,7 @@
+authorization context:
+  user context: A user context
+  scope: A user scope
+  grant type: password
+  expires: 2019-02-02T12:13:14Z
+  bearer: A bearer token
+  # this is a fairly simple read-only bean.

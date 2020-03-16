@@ -1,0 +1,223 @@
+# XTE Logging:
+# Security logging and inspection for the eXtenal Test Environment (XTE). The sidecar inspects, logs, and, if
+# necessary, will override the response with sanitized inputs.
+#
+#use cases:
+#  - Inspection of potentially confidential data being present in the reponses.
+
+service id: aServiceId
+endpoint id: anEndpointId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+origin uri: https://docker.kml/backend/
+
+post-processor configuration:
+  synchronicity: request-response
+  elements: remoteAddress,operation,token,+responseHeaders,responsePayload,messageId,packageKey,responseCode
+
+
+---
+# Pass the response back to the client without modification.
+# ---------------------------
+name: pass-along without modifications
+point: PostProcessor
+
+api client request:
+  remote address: 1.2.3.4
+  http verb: GET
+  resource: /controlled-operation/param/search
+  query params:
+    myQuery: p123
+  headers:
+    Authorization: B
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+request to the api origin:
+  api origin response:
+    status code: 201
+    headers:
+      RA: RB
+      Content-Type: text/plain
+    payload: ==PAYLOAD==
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PostProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+    remoteAddress: 1.2.3.4
+    operation:
+      #uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+      httpVerb: get
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    response:
+      responseCode: 201
+      headers:
+        ra: RB
+        content-type: text/plain
+      payload: ==PAYLOAD==
+
+  output:
+  # Output is an empty object, indicating that no action is needed
+
+mashery response:
+  payload: ==PAYLOAD==
+# TODO: Do we need this?
+---
+#
+# Post-processor can deny the application receiving the response.
+# -----------------------
+name: rejecting delivery to API client
+point: PostProcessor
+
+inherited:
+  - client-request
+  - origin-interaction
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PostProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+    remoteAddress: 1.2.3.4
+    operation:
+      httpVerb: get
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    response:
+      statusCode: 201
+      headers:
+        ra: RB
+        content-type: text/plain
+      payload: ==PAYLOAD==
+
+  output:
+    terminate:
+      statusCode: 465
+      message: Payload violates defined confidentiality policy
+
+mashery response:
+  complete: true
+  status code: 465
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Payload violates defined confidentiality policy]]></h1>"
+
+---
+# In the event of a failure, the application must receive a clear status code.
+# ---------------------------------
+name: invocation failure
+point: PostProcessor
+
+inherited:
+  - client-request
+  - origin-interaction
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PostProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+    remoteAddress: 1.2.3.4
+    operation:
+#              uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+      httpVerb: get
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    response:
+      statusCode: 201
+      headers:
+        ra: RB
+        content-type: text/plain
+      payload: ==PAYLOAD==
+
+  throw exception: Unexpected return code
+
+mashery response:
+  complete: true
+  status code: 550
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Internal server error before sending the response, code 0x000003BB]]></h1>"
+
+
+#    pass-along with sanitizatoin:
+#      point: post-processor
+#
+#      client:
+#        remote address: 1.2.3.4
+#        http verb: GET
+#        uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+#        headers:
+#          Authorization: B
+#
+#      request to the api provider:
+#        provider uri: https://docker.kml/backend/url?myQuery=ffff
+#
+#      key:
+#        package key: dfgf
+#        application:
+#          name: the-app
+#
+#      api origin response:
+#        code: 201
+#        headers:
+#          RA: RB
+#        payload: ==PAYLOAD==
+#
+#      # This is what should be sent to lambda
+#      sidecar:
+#        input:
+#          synchronicity: RequestResponse
+#          point: PostProcessor
+#          packageKey: dfgf
+#          serviceId: aServiceId
+#          endpointId: anEndpointId
+#
+#          remoteAddress: 1.2.3.4
+#          operation:
+#            uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+#            httpVerb: GET
+#            path: /controlled-operation/param/search
+#            query:
+#              myQuery: p123
+#
+#          response:
+#            code: 201
+#            headers:
+#              ra: RB
+#            payload: ==PAYLOAD==
+#
+#        output:
+#          addHeaders:
+#            x-sanitized-by: AFKLM Sanitized
+#          dropHeaders:
+#            - x-backend
+#

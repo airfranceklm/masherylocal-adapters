@@ -1,0 +1,84 @@
+#Smoke Test:
+#  desc: This is a simple test simulation
+#
+service id: fff
+endpoint id: ffff
+endpoint name: fake
+
+endpoint uri: https://api-unitttest.airfranceklm.com
+origin uri:   http://local.backend/op
+
+pre-processor configuration:
+  a: b
+
+post-processor configuration:
+  synchronicity: request-response
+  elements: "+responseHeaders|responsePayload|messageId|packageKey"
+
+---
+name: base post-processing scenario
+point: PostProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /fff?myQuery=123
+  headers:
+    A: B
+    C: C1
+    Content-Type: text/lain
+  payload: AAAA
+  # RequestPayload can be for GET-type requests.
+
+  application:
+    name: the-app
+    extended attributes:
+      a: b
+    package key:
+      key: dfgf
+
+  authorization context:
+    scope: "12345"
+    user context: "456"
+    grant type: CC
+
+      # Actual request to the API origin would be unavailable, therefore this data
+      # is not required.
+      #request to the api origin:
+      #  origin uri: https://docker.kml/backend/url?myQuery=ffff
+      #  dropped headers:
+      #    - C
+      #    - D
+      #  added headers:
+      #    E: F
+      #    G: H
+request to the api origin:
+  api origin response:
+    status code: 201
+    headers:
+      RA: RB
+      Content-Type: text/plain
+    payload: ==PAYLOAD==
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    serviceId: fff
+    endpointId: ffff
+    packageKey: dfgf
+
+    point: PostProcessor
+    synchronicity: RequestResponse
+
+    response:
+      responseCode: 201
+      headers:
+        ra: RB
+        content-type: text/plain
+      payload: ==PAYLOAD==
+
+mashery response:
+  payload: ==PAYLOAD==
+

@@ -1,0 +1,11 @@
+intList:
+  - 12
+  - 13
+  - 14
+---
+intList:
+  - 12
+  - 13
+  - 14
+  - Offending string
+

@@ -1,0 +1,75 @@
+preflight:
+  include:
+    elements:
+    # No effect
+---
+preflight:
+  include:
+    elements:
+      - remoteAddress
+
+---
+preflight:
+  include:
+    elements:
+      - grantType
+---
+preflight:
+  include:
+    elements:
+      - tokenScope
+---
+preflight:
+  include:
+    elements:
+      - token
+---
+preflight:
+  include:
+    elements:
+      - +Token
+---
+preflight:
+  include:
+    elements:
+      - verb
+---
+preflight:
+  include:
+    elements:
+      - operation
+    # Unsupported
+---
+preflight:
+  include:
+    elements:
+      - +requestHeaders
+---
+preflight:
+  include:
+    elements:
+      - requestPayload
+    # Not supported
+---
+preflight:
+  include:
+    elements:
+      - routing
+---
+preflight:
+  include:
+    elements:
+      - relayParams
+    # Not supported
+---
+preflight:
+  include:
+    elements:
+      - +responseHeaders
+    # Not possible
+---
+preflight:
+  include:
+    elements:
+      - responsePayload
+    # Not possible

@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.airfranceklm.amtml.sidecar.assembly</groupId>
+        <artifactId>assembly-main</artifactId>
+        <version>1.0</version>
+    </parent>
+    <artifactId>afklm-osgi-activator</artifactId>
+    <packaging>jar</packaging>
+
+    <version>1.0</version>
+    <name>Air France/KLM OSGI Activator</name>
+    <description>
+        Default production-grant launcher
+    </description>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <dependencies-version>1.0-SNAPSHOT</dependencies-version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                        <manifestEntries>
+                            <version>${project.version}</version>
+                            <url>https://confluence.devnet.klm.com/display/AMT/API+Support+Home</url>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>    <!-- (2) START -->
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>4.2.1</version>
+                <extensions>true</extensions>
+
+                <executions>
+                    <execution>
+                        <id>bundle-manifest</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>manifest</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <finalName>AFKLM-ML4-SidecarProcessor-Bundle-${project.version}</finalName>
+                    <instructions>
+                        <noee>true</noee>
+                        <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Directory>lib</Embed-Directory>
+                        <Embed-Transitive>true</Embed-Transitive>
+
+                        <Bundle-Name>com.mashery.customer.AFKLM_ML_Filters-1.0</Bundle-Name>
+                        <Bundle-SymbolicName>com.mashery.customer.AFKLM_ML_Filters-1.0</Bundle-SymbolicName>
+                        <Bundle-Version>1.0.0.201909031139</Bundle-Version>
+                        <Bundle-ActivationPolicy>lazy</Bundle-ActivationPolicy>
+                        <Bundle-Activator>com.airfranceklm.amt.sidecar.launch.SidecarProcessorActivator</Bundle-Activator>
+
+                        <Export-Package>
+                            com.airfranceklm.amt.sidecar.config,
+                            com.airfranceklm.amt.sidecar.model,
+                            com.airfranceklm.amt.sidecar.model.json
+                        </Export-Package>
+                        <Import-Package>
+                            com.mashery.http,
+                            com.mashery.http.client,
+                            com.mashery.http.io,
+                            com.mashery.http.server,
+                            com.mashery.trafficmanager.cache,
+                            com.mashery.trafficmanager.debug,
+                            com.mashery.trafficmanager.event.listener,
+                            com.mashery.trafficmanager.event.model,
+                            com.mashery.trafficmanager.event.processor.model,
+                            com.mashery.trafficmanager.model.core,
+                            com.mashery.trafficmanager.processor,
+                            org.slf4j
+                        </Import-Package>
+                        <!--            <Service-Component>OSGI-INF/services/*.xml</Service-Component>-->
+                        <_noee>true</_noee>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <!-- OSGI Dependency for direct activation -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>adapter-core</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>alcp-algorithms</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <!-- Necessary stacks -->
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>http-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <!-- Necessary stacks -->
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>aws-lambda-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>aws-lambda-over-http-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.airfranceklm.amtml.sidecar</groupId>
+            <artifactId>fs-stack</artifactId>
+            <version>${dependencies-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

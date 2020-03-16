@@ -1,0 +1,13 @@
+preflight:
+  # W
+---
+preflight:
+  enabled: true
+---
+preflight:
+  enabled: false
+---
+preflight:
+  # has no effect, preflight is disabled.
+  enabled: wrong type
+

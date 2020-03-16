@@ -1,0 +1,149 @@
+#Operation Authorization:
+#  desc: The operation authorization allows sidecar perform fine-grained access control authorization going to the
+#    level of subtrees, endpoints, or operations. In this scenario, we are looking at controlling the application-level
+#    access.
+#
+#  use cases:
+#    - Authorizing methods for individual operations. (We not this difference with the OAuth packager that validagtes
+#      the verb for the entire endpoint
+
+service id: aServiceId
+endpoint id: anEndpointId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+origin uri: https://some.externally.hosted.backend.com/backend/v2
+
+pre-processor configuration:
+  synchronicity: request-response
+  elements: operation,grantType,tokenScope,messageId,packageKey
+---
+name: access is granted
+#      desc: The sidecar checks the access to the individual application based on the grant type and the role assigned.
+#           We want to ensure that the users are logged in with a stronger credentials and that they have
+#           specific role to invoke an operation.
+#
+point: PreProcessor
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /controlled-operation/param/search
+  query params:
+    myQuery: p123
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+  authorization context:
+    scope: role1 role2 role2
+    user context: '{"level-of-assurance": 4, "name": "john", lastName: "doe"}'
+    grant type: password
+    expires: "2020-03-24T13:48:09Z"
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+    operation:
+#              uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+      httpVerb: get
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    token:
+      grantType: password
+      scope: role1 role2 role2
+
+  output:
+  # Do-nothing, empty object is produced.
+
+---
+name: access is denied
+desc: The sidecar denies the access to the POST method, of this operation, becuase it believe it is not
+         allowed.
+
+point: PreProcessor
+
+inherited:
+  - client-request
+
+api client request:
+  http verb: POST
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+    operation:
+      httpVerb: post
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    token:
+      grantType: password
+      scope: role1 role2 role2
+
+  output:
+    terminate:
+      statusCode: 455
+      message: Access denies do to an ACL on the resource
+
+mashery response:
+  complete: true
+  status code: 455
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Access denies do to an ACL on the resource]]></h1>"
+
+---
+name: invocation failed
+desc: If invocation fails, the 500 error should be returned back to the user.
+
+inherited:
+  - client-request
+
+point: PreProcessor
+
+api client request:
+  http verb: PATCH
+  payload: == Sample Payload ==
+
+sidecar pre-processor:
+    input:
+      masheryMessageId: unit-test-call-uuid
+      synchronicity: RequestResponse
+      point: PreProcessor
+      packageKey: dfgf
+      serviceId: aServiceId
+      endpointId: anEndpointId
+      operation:
+        httpVerb: patch
+        path: /controlled-operation/param/search
+        query:
+          myQuery: p123
+
+      token:
+        grantType: password
+        scope: role1 role2 role2
+
+    throw exception: Unexpected return code received
+
+mashery response:
+  complete: true
+  status code: 550
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"

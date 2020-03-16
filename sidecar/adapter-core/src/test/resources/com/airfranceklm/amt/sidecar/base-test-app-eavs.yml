@@ -1,0 +1,102 @@
+#Including Application EAVs:
+#  desc: Check that the ApplicationEAVs are included.
+#
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  require-eavs: PkA
+  eavs: PkB,PkC
+  elements: +requestHeaders,messageId,packageKey
+
+---
+name: sending correct message with PkC missing
+api client request:
+  remote address: 123.456.789.012
+  http verb: POST
+  resource: /path/to/op
+  query params:
+    myQuery: 123
+    p1: djfr
+  headers:
+    A: B
+  payload:  ABC
+
+  application:
+    name: the-app
+    extended attributes:
+      PkA: PkA-Value
+      PkB: PkB-Value
+    package key:
+      key: dfgf
+
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+    eavs:
+      PkA: PkA-Value
+      PkB: PkB-Value
+
+  output:
+  # An empty object, do nothing.
+---
+name: send 400 when required eav being empty
+desc: with the package key being empty, the 400 message should be sent back.
+
+inherited:
+  - client-request
+
+api client request:
+  application:
+    name: the-app
+    extended attributes:
+      PkA: "      "
+      PkB: PkB-Value
+      PkC: PkC-Value
+
+    package key:
+      key: dfgf
+
+mashery response:
+  complete: true
+  status code: 400
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"
+
+---
+name: send 400 when required eav is null
+desc: with the package key being empty, the 400 message should be sent back.
+
+inherited:
+  - client-request
+# TODO: in this case, these could be inherited from other case?
+
+api client request:
+  application:
+    name: the-app
+    extended attributes:
+      PkB: PkB-Value
+      PkC: PkC-Value
+    package key:
+      key: dfgf
+
+mashery response:
+  complete: true
+  status code: 400
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"

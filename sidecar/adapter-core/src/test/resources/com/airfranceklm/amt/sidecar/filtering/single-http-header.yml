@@ -1,0 +1,59 @@
+#Filtering on a single HTTP Headers:
+#  desc: Test how filtering works on a single HTTP headers.
+
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  when-requestHeader(content-type): ~/application/json.*/
+  elements: +requestHeaders,messageId,packageKey
+
+---
+name: positive confirmation
+api client request:
+  remote address: 123.456.789.012
+  http verb: POST
+  resource: /path/to/op
+  headers:
+    A: B
+    Content-Type: application/json+super-custom-extension
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        content-type: application/json+super-custom-extension
+        x-mashery-message-id: unit-test-call-uuid
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+
+  output:
+  # An empty object, do nothing.
+
+---
+
+name:  filtered-out confirmation
+inherited:
+  - client-request
+
+api client request:
+  headers:
+    A: B
+    Content-Type: application/NON-json+super-custom-extension
+
+      # In this test, Lambda should not be even called.

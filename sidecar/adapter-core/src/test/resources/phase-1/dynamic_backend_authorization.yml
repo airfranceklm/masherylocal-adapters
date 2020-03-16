@@ -1,0 +1,110 @@
+#Dynamic endpoint authorization:
+#  desc: In this case, the sidecar is used to compute dynamic set of headers that need to be added to the API
+#    origin request so that the request would succeed.
+#
+#  use cases:
+#    - Supply dynamic back-end authentication required by the API origin server;
+#    - Supplement headers indicating application authorization for the data that the API origin server must observe.
+#
+service id: aServiceId
+endpoint id: anEndpointId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api.airfranceklm.com/externallyHostedAPI
+origin uri:
+
+pre-processor configuration:
+  elements: messageId,packageKey
+  synchronicity: request-response
+  # For the purpose of testing, the details of the actual stack (aws-lambda) will be omitted.
+
+---
+
+    # There are three cases here:
+    # 1. Authentication succeeds;
+    # 2. Authentication is rejected by Lambda
+    # 3. Call fails, leading to sending the 500 error back.
+
+name: authentication succeeds
+desc: The sidecar is able to obtain the necessary authentication, and is passing this
+ to Mashery gateway for applcation.
+
+point: PreProcessor
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /fff
+  query params:
+    myQuery: 123
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+  output:
+    modify:
+      passHeaders:
+        x-authz: akdsfaihvkmnadflknen43o5kn5
+        x-bnd-scope: v,346,f
+
+# This is what needs to be changed
+request to the api origin:
+  modify origin request:
+    add headers:
+      x-authz: akdsfaihvkmnadflknen43o5kn5
+      x-bnd-scope: v,346,f
+
+---
+name: authentication fails
+desc: The sidecar denies the authentication for the specific request.
+
+point: PreProcessor
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+sidecar pre-processor:
+  output:
+    terminate:
+      statusCode: 403
+      message: This application cannot access this service.
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[This application cannot access this service.]]></h1>"
+
+---
+
+name: invocation fails
+desc: The sidecar denies the authentication for the specific request.
+
+point: PreProcessor
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+sidecar pre-processor:
+  throw exception: Unexpected coded 500 encountered
+
+mashery response:
+  complete: true
+  status code: 550
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"

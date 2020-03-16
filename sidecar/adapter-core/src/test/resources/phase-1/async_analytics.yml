@@ -1,0 +1,133 @@
+#Asynchronous analytics:
+#  desc: Case illustrates the use of the Async analytics. It is largely analogous to XTE Logging, with the crutial
+#    difference that it's invoked as an event and is fail-safe.
+#
+#  use cases:
+#    - Asynchronous analytics
+
+service id: aServiceId
+endpoint id: anEndpointId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api.airfranceklm.com/sampleApi/v2
+origin uri: https://docker.kml/backend/url
+
+post-processor configuration:
+  synchronicity: event
+  elements: operation,requestPayload,responsePayload,messageId,packageKey
+  failsafe: "true"
+
+---
+name: payload extraction on get
+point: PostProcessor
+
+api client request:
+  remote address: 1.2.3.4
+  http verb: GET
+  resource: /controlled-operation/param/search
+  query params:
+    myQuery: p123
+  headers:
+    Authorization: B
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+
+request to the api origin:
+  api origin response:
+    status code: 201
+    headers:
+      RA: RB
+      Content-Type: text/plain
+    payload: ==RESPONSE PAYLOAD==
+
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PostProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+    operation:
+      #uri: https://api.airfranceklm.com/sampleApi/v2/controlled-operation/param/search?myQuery=p123
+      httpVerb: get
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    response:
+      statusCode: 201
+      payload: ==RESPONSE PAYLOAD==
+
+  output:
+
+mashery response:
+  payload: ==RESPONSE PAYLOAD==
+
+
+---
+name: payload extraction on post
+point: PostProcessor
+
+inherited:
+  - client-request
+  - origin-response
+
+api client request:
+  http verb: POST
+  headers:
+    Authorization: B
+    Content-Type: text/plain
+  payload: == REQUEST PAYLOAD ==
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PostProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+
+    operation:
+      httpVerb: post
+      path: /controlled-operation/param/search
+      query:
+        myQuery: p123
+
+    request:
+      payload: == REQUEST PAYLOAD ==
+
+    response:
+      statusCode: 201
+      payload: ==RESPONSE PAYLOAD==
+
+  output:
+    # No input will be expected.
+
+
+mashery response:
+  payload: ==RESPONSE PAYLOAD==
+
+---
+name: invocation failure
+point: PostProcessor
+
+inherited:
+  - client-request
+  - origin-response
+  - sidecar post-processor request
+
+# This is what should be sent to lambda
+sidecar post-processor:
+  throw exception: Unexpected return code
+
+# Nothing should happen: the call will just continue.

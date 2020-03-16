@@ -1,0 +1,211 @@
+#Smoke Test:
+#  desc: This is a simple test simulation
+
+service id: fff
+endpoint id: ffff
+endpoint name: fake
+
+pre-processor configuration:
+  synchronicity: request-response
+  elements: +requestHeaders,messageId,packageKey
+
+endpoint uri:  https://api-unitttest.airfranceklm.com/
+origin uri: https://docker.kml/backend/url
+
+dropped headers:
+  - C
+  - D
+
+added headers:
+  E: F
+  G: H
+
+post-processor configuration:
+
+---
+name: base rejection scenario
+
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /fff
+  query params:
+    myQuery: 123
+  headers:
+    A: B
+    C: C1
+  payload: AAAA
+  # RequestPayload can be for GET-type requests.
+
+  application:
+    name: the-app
+    extended attributes:
+      a: b
+    package key:
+      key: dfgf
+
+  authorization context:
+    scope: "12345"
+    user context: "456"
+    grant type: CC
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    packageKey: dfgf
+    serviceId: fff
+    endpointId: ffff
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        c: C1
+        e: F
+        g: H
+        x-mashery-message-id: unit-test-call-uuid
+
+  output:
+    terminate:
+      statusCode: 403
+      message: "Lambda 403"
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Lambda 403]]></h1>"
+
+---
+name:    rejection with single code
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  output:
+    terminate:
+      statusCode: 403
+    # Message is not provided
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Service cannot be provided, code 0x000003BB]]></h1>"
+
+---
+name: rejection with payload
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+sidecar pre-processor:
+  output:
+    terminate:
+      statusCode: 403
+      passHeaders:
+        X-sidecar: Error
+      payload: "==PAYLOAD=="
+    # Message is not provided
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    X-sidecar: Error
+  payload:  "==PAYLOAD=="
+
+---
+
+name: rejection with json and content type
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+sidecar pre-processor:
+  output:
+    terminate:
+      statusCode: 403
+      passHeaders:
+        Content-Type: application/json+hal
+      json:
+        a: b
+    # Message is not provided
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    Content-Type: application/json+hal
+  payload: "{\"a\":\"b\"}"
+
+---
+
+name: rejection with json and without content type
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  output:
+    terminate:
+      statusCode: 403
+      passHeaders:
+        x-sidecar: super
+      json:
+        a: b
+    # Message is not provided
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    x-sidecar: super
+    Content-Type: application/json
+  payload: "{\"a\":\"b\"}"
+
+---
+
+name: error reporting on internal problem
+point: PreProcessor
+desc: Checking that the unit test will compile and will nominally pass.
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  throw exception: "Lambda has failed"
+
+mashery response:
+  complete: true
+  status code: 550
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Internal server error before processing the call, code 0x000003BB]]></h1>"
+
+
+
+

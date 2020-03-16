@@ -1,0 +1,22 @@
+string: this is a string value
+b1: true
+b2: false
+
+i1: 34
+i2: 45
+
+stringMap:
+  a: b
+  c: d
+
+objectMap:
+  a: 3
+  b: false
+
+gmtDate: 2019-10-01T22:33:34Z
+
+nestedBean:
+  nestedValue: "adf"
+
+#testContext:
+#  strValue: abc

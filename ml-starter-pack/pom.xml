@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.airfranceklm.amt</groupId>
+        <artifactId>masherylocal-adapters</artifactId>
+        <version>1.0</version>
+    </parent>
+    <artifactId>ml-starter-pack</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>Mashery starter package</name>
+    <url>http://maven.apache.org</url>
+    <description>
+        Contains dependecies and common methods
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.mashery</groupId>
+            <artifactId>trafficmanager</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mashery</groupId>
+            <artifactId>http</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mashery</groupId>
+            <artifactId>util</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mashery</groupId>
+            <artifactId>proxy_responder</artifactId>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,10 @@
+idempotent-aware:
+  # has no effect, false
+---
+idempotent-aware: true
+---
+idempotent-aware: false
+---
+idempotent-aware: wrong tpyese
+  # will cause the configuration to be null
+

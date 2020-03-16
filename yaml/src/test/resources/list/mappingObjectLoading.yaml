@@ -1,0 +1,9 @@
+objectList:
+  - stringList:
+      - A
+      - B
+      - C
+  - stringList:
+      - D
+      - E
+      - F

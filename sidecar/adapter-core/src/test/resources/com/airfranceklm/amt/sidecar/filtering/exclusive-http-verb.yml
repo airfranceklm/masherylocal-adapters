@@ -1,0 +1,52 @@
+#Exclusive Filtering on a HTTP verb:
+#  desc: Test how filtering works on a single HTTP headers.
+
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  unless-httpVerb: get|head
+  elements: -headers,messageId,packageKey
+
+---
+name: positive confirmation
+api client request:
+  remote address: 123.456.789.012
+  http verb: POST
+  resource: /path/to/op
+  headers:
+    A: B
+    Content-Type: application/json+super-custom-extension
+    AFKLM-Market: NL
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+    operation:
+      httpVerb: post
+
+  output:
+  # An empty object, do nothing.
+---
+name: filtered-out confirmation
+
+inherited:
+  - client-request
+
+api client request:
+  http verb: GET
+      # In this test, Lambda should not be even called.

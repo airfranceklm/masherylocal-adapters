@@ -1,0 +1,4 @@
+expect changes to:
+  request to the api origin:
+    add headers:
+      C: value

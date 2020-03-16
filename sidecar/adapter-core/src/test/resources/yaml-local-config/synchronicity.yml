@@ -1,0 +1,7 @@
+synchronicity: Event
+---
+synchronicity: RequestResponse
+---
+synchronicity: NonBlockingEvent
+---
+synchronicity: Undefined

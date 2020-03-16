@@ -1,0 +1,79 @@
+#Token data expansion:
+#  desc: Checks that the token data is expanded correctly
+#
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  elements: token,+requestHeaders,messageId,packageKey
+
+---
+name: expansion with token data missing
+
+api client request:
+  remote address: 123.456.789.012
+  http verb: POST
+  resource: /path/to/op
+  query params:
+    myQuery: 123
+    p1: djfr
+  headers:
+    A: B
+  payload:  ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+
+  output:
+  # An empty object, do nothing.
+
+---
+name: expansion of token
+inherited:
+  - client-request
+
+api client request:
+  authorization context:
+    scope: "12345"
+    user context: "456"
+    grant type: CC
+    expires: "2020-03-24T13:48:09Z"
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+    request:
+      headers:
+        a: B
+        x-mashery-message-id: unit-test-call-uuid
+    token:
+      scope: "12345"
+      userContext: "456"
+      grantType: CC
+      expires: "2020-03-24T13:48:09Z"
+
+  output:
+    # No output

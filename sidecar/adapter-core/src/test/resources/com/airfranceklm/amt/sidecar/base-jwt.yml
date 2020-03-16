@@ -1,0 +1,122 @@
+#Custom JWT Validation Scenarios:
+#  desc: This is a simple test simulation
+
+service id: aServiceId
+endpoint id: anEndpointId
+
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api-unitttest.airfranceklm.com/
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  # Headers should be present and should contain value in it.
+  require-request-headers: authorization
+  require-eavs: Public_Key
+  synchronicity: request-response
+  elements: messageId,packageKey
+
+---
+name: Lambda Denies
+
+desc: Checking that lambda processor denies the call if Authorization eav is not present in request.
+
+api client request:
+  remote address: 127.0.0.1
+  http verb: GET
+  resource: /fff
+  query params:
+    myQuery: 123
+  headers:
+    Authorization: B
+
+  # RequestPayload can be for GET-type requests.
+
+  application:
+    name: the-app
+    extended attributes:
+      Public_Key: b
+    package key:
+      key: dfgf
+
+# This is what should be sent to lambda
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: RequestResponse
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: aServiceId
+    endpointId: anEndpointId
+    request:
+      headers:
+        authorization: B
+    eavs:
+      Public_Key: b
+
+  output:
+    terminate:
+      statusCode: 403
+      message: "Lambda 403"
+
+
+mashery response:
+  complete: true
+  status code: 403
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Lambda 403]]></h1>"
+
+---
+    # If we are missing a header in the request, then we should receive an obscure error.
+name:  Incomplete Request
+desc: Checking that lambda processor denies the call if public_key is not defined at Application.
+
+inherited:
+  - package-key
+  - client-request
+
+api client request:
+  application:
+    extended attributes:
+      Public_Key: ""
+
+mashery response:
+  complete: true
+  status code: 400
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"
+
+---
+name: Missing EAV Request
+desc: Checking that lambda processor denies the call if public_key is not defined at Application.
+
+inherited:
+  - package-key
+  - client-http-request
+
+api client request:
+  application:
+    name: the-app
+
+mashery response:
+  complete: true
+  status code: 400
+  headers:
+    Content-Type: application/xml
+  payload: "<h1><![CDATA[Request pre-condition not met, code 0x000003BB]]></h1>"
+
+---
+name: Successful Request
+
+inherited:
+  - client-request
+  - sidecar pre-processor request
+
+sidecar pre-processor:
+  output:
+  # empty object
+
+# No modifications of the request should happen
+# Response to the client should not be curtailed.

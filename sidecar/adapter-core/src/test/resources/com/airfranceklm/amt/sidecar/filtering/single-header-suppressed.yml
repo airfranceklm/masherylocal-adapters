@@ -1,0 +1,52 @@
+#Filtering on a single HTTP Headers with headers suppressed:
+#  desc: Test how filtering works on a single HTTP headers.
+
+service id: srvId
+endpoint id: endpId
+endpoint name: unit-test-endpoint
+
+endpoint uri: https://api-unitttest.airfranceklm.com/api-path
+origin uri: https://docker.kml/backend/url
+
+pre-processor configuration:
+  when-requestHeader(content-type): ~/application/json.*/
+  elements: messageId,packageKey
+
+---
+name: positive confirmation
+#point: PreProcessor
+
+api client request:
+  remote address: 123.456.789.012
+  http verb: POST
+  resource: /path/to/op
+  query params:
+    myQuery: 123
+    p1: djfr
+  headers:
+    A: B
+    C: D
+    Content-Type: application/json+super-custom-extension
+  payload: ABC
+
+  application:
+    name: the-app
+    package key:
+      key: dfgf
+
+
+sidecar pre-processor:
+  input:
+    masheryMessageId: unit-test-call-uuid
+    synchronicity: Event
+    point: PreProcessor
+    packageKey: dfgf
+    serviceId: srvId
+    endpointId: endpId
+
+    request:
+      headers:
+        content-type: application/json+super-custom-extension
+
+  output:
+  # An empty object, do nothing.

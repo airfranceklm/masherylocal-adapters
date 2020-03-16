@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.klm.amt.mashery</groupId>
-    <artifactId>AFKLM_ML_Adapters</artifactId>
-    <packaging>jar</packaging>
+    <groupId>com.airfranceklm.amt</groupId>
+    <artifactId>masherylocal-adapters</artifactId>
+    <packaging>pom</packaging>
     <version>1.0</version>
     <description>Air France/KLM custom adapters for Mashery Local 4.3</description>
 
@@ -29,28 +28,14 @@
                             <addClasspath>true</addClasspath>
                         </manifest>
                         <manifestEntries>
-                            <version>${version}</version>
+                            <version>${project.version}</version>
                             <url>https://confluence.devnet.klm.com/display/AMT/API+Support+Home</url>
                         </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
 
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptor>assembly.xml</descriptor>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -62,100 +47,157 @@
         </plugins>
     </build>
 
-    <dependencies>
+    <dependencyManagement>
+        <dependencies>
 
-        <!-- Dependencis provided by Mashery SDK -->
+            <!-- OSGI dependencies -->
+            <dependency>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.core</artifactId>
+                <version>4.1.0</version>
+                <scope>provided</scope>
+            </dependency>
 
-        <dependency>
-            <groupId>com.mashery</groupId>
-            <artifactId>trafficmanager</artifactId>
-            <version>1.2.0.v20170407-0516</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.mashery</groupId>
-            <artifactId>http</artifactId>
-            <version>1.0.0.v20130130-0044</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.mashery</groupId>
-            <artifactId>util</artifactId>
-            <version>1.0.0.v20130214-0015</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.mashery</groupId>
-            <artifactId>proxy_responder</artifactId>
-            <version>1.0.0.v20180221-2333</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.2</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.8.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.20</version>
-        </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.4</version>
+                <scope>provided</scope>
+            </dependency>
 
 
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-lambda</artifactId>
-            <version>1.11.592</version>
-        </dependency>
+            <!-- Dependencis provided by Mashery SDK -->
 
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sns</artifactId>
-            <version>1.11.632</version>
-        </dependency>
+            <dependency>
+                <groupId>com.mashery</groupId>
+                <artifactId>trafficmanager</artifactId>
+                <version>1.2.0.v20170407-0516</version>
+                <scope>provided</scope>
+            </dependency>
 
+            <dependency>
+                <groupId>com.mashery</groupId>
+                <artifactId>http</artifactId>
+                <version>1.0.0.v20130130-0044</version>
+                <scope>provided</scope>
+            </dependency>
 
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.9.8</version>
-        </dependency>
+            <dependency>
+                <groupId>com.mashery</groupId>
+                <artifactId>util</artifactId>
+                <version>1.0.0.v20130214-0015</version>
+                <scope>provided</scope>
+            </dependency>
 
+            <dependency>
+                <groupId>com.mashery</groupId>
+                <artifactId>proxy_responder</artifactId>
+                <version>1.0.0.v20180221-2333</version>
+                <scope>provided</scope>
+            </dependency>
 
-        <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
-            <version>3.5.1</version>
-            <scope>test</scope>
-        </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.2</version>
+                <scope>provided</scope>
+            </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.8.1</version>
-            <scope>test</scope>
-        </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.9</version>
+            </dependency>
 
-    </dependencies>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.13</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>1.3.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>2.8.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.klm.bootondocker</groupId>
+                <artifactId>bootondocker2-starter</artifactId>
+                <version>0.0.4</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.23</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.auth0</groupId>
+                <artifactId>java-jwt</artifactId>
+                <version>3.3.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>lambda</artifactId>
+                <version>2.10.60</version>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sqs</artifactId>
+                <version>2.10.60</version>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sts</artifactId>
+                <version>2.10.60</version>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>apache-client</artifactId>
+                <version>2.10.60</version>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>netty-nio-client</artifactId>
+                <version>2.10.60</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.9.10</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.easymock</groupId>
+                <artifactId>easymock</artifactId>
+                <version>3.5.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.8.1</version>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
 
     <repositories>
         <repository>
@@ -171,4 +213,10 @@
     </pluginRepositories>
 
 
+    <modules>
+        <module>yaml</module>
+        <module>ml-starter-pack</module>
+        <module>ml-sdk-mock</module>
+        <module>sidecar</module>
+    </modules>
 </project>
