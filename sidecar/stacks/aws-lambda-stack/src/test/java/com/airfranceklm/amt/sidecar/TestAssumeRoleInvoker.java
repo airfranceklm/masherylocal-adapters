@@ -25,11 +25,12 @@ import static org.junit.Assert.*;
  */
 public class TestAssumeRoleInvoker {
 
-    private final String key = "AKIASY5OEKMHBRWGALGT";
-    private final String secret = "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";
-    private final String functionName = "arn:aws:lambda:eu-west-1:434277372272:function:async-analytics-sidecar";
-    private final String role = "arn:aws:iam::434277372272:role/AleksAccountToCloudOpsDemo";
-    private final String region = "eu-west-1";
+    // TODO: read the settings from a secret directory
+    private final String key = "TODO";
+    private final String secret = "TODO";
+    private final String functionName = "TODO";
+    private final String role = "TODO";
+    private final String region = "TODO";
 
     AWSLambdaStack stackUnderTest;
     ProcessorServices processorServices;

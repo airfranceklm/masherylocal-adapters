@@ -21,9 +21,9 @@ import java.util.Map;
  */
 public class TestInvoker extends EasyMockSupport {
 
-    private final String key = "AKIASY5OEKMHNQISWW5D";
-    private final String secret = "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";
-    private final String functionName = "arn:aws:lambda:eu-west-1:190954361614:function:LambdaBasicAsync";
+    private final String key = "TODO";
+    private final String secret = "TODO";
+    private final String functionName = "TODO";
     private final String region = "eu-west-1";
 
     AWSLambdaStack stackUnderTest;
